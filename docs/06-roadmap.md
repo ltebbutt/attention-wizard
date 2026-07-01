@@ -9,6 +9,10 @@ can use daily. Ship the habit loop first; integrations deepen it.
 - Entra ID app registration; login flow end-to-end (Angular → API → JWT).
 - CI (build, lint, test, dependency + secret scanning), dev/prod environments on Azure.
 - LLM Gateway skeleton with the Foundry driver and one working prompt ("hello triage").
+- **Token metering from the first call:** `LlmUsage` recording, per-request caps, and a
+  basic per-user daily budget ship with the gateway skeleton — governance is never
+  retrofitted. The cost dashboard can be a SQL query at this stage; the data must be
+  complete from day one.
 
 **Exit criteria:** you can sign in with your Microsoft account and call one LLM-backed
 endpoint in production.
@@ -32,11 +36,12 @@ itself. If the loop doesn't stick with manual entry, connectors won't save it.
 - Triage pipeline v1: classify, extract asks/deadlines, digest UI (accept/snooze/dismiss).
 - Accepted items flow into the Top 3 proposal (prioritisation engine v1: rules + LLM rank
   with explanations).
-- Calendar **write**: propose and book focus blocks for Top 3 items; blown-block
-  detection and re-plan prompt.
+- **Invite-first focus blocks:** service mailbox sends meeting invites carrying the
+  session plan; user accepts in Outlook; RSVP state read back. Blown-block detection
+  and re-plan (fresh invite). Direct calendar write ships later as an opt-in power mode.
 
-**Exit criteria:** morning proposal is drawn from real inbox traffic; focus blocks land
-in Outlook.
+**Exit criteria:** morning proposal is drawn from real inbox traffic; accepting an
+invite puts a session-planned focus block in Outlook.
 
 ## Phase 3 — Onboarding interview & recommendations (2–3 weeks)
 
@@ -70,7 +75,8 @@ without touching raw settings.
 | Risk | Mitigation |
 |---|---|
 | Tenant admin consent blocks Teams/mail scopes at target workplaces | Graceful per-scope degradation is built into the connector UX from Phase 2 |
-| LLM triage cost balloons with mail volume | Batch triage, cheap-model first pass, per-user budgets, digest cadence instead of realtime |
+| LLM triage cost balloons with mail volume | Batch triage, cheap-model first pass, layered token budgets + spend circuit-breaker enforced in the gateway, digest cadence instead of realtime |
+| Users ignore the focus-block invites | RSVP telemetry is free — measure accept rate from Phase 2; tune session-plan copy and slot choice before considering auto-write default |
 | Nudges become noise and get ignored | NudgeLog engagement tracking from Phase 1; frequency auto-tunes down |
 | iOS PWA push reliability | Measure in Phase 1; native shell (Capacitor) as contingency |
 | Screening feature drifts toward "diagnosis" | Copy review + disclaimers as a release checklist item, every release |

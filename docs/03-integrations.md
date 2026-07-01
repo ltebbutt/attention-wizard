@@ -12,10 +12,35 @@ trust.
 |---|---|---|---|
 | Read mail | `/me/messages` (delta) | `Mail.Read` | Delta query + change notifications |
 | Read calendar | `/me/calendar/events` (delta) | `Calendars.Read` | Delta + notifications |
-| Write focus blocks | `POST /me/events` | `Calendars.ReadWrite` | On user action only |
+| Focus-block invites | Service mailbox `POST /users/{svc}/events` with user as attendee | none on the user | Default (see below) |
+| Direct block write | `POST /me/events` | `Calendars.ReadWrite` | Optional power mode only |
 | Teams mentions/DMs | `/me/chats/getAllMessages` or per-chat delta | `Chat.Read` | Notifications + poll fallback |
 | Send nudge as Teams DM | `POST /chats/{id}/messages` | `Chat.ReadWrite` | Optional, off by default |
 | Presence-aware nudging | `/me/presence` | `Presence.Read` | Optional (don't nudge mid-meeting) |
+
+### Invite-first calendar blocking
+
+The default booking flow sends the user a **meeting invite** rather than writing to
+their calendar:
+
+1. The planner finds a free slot (via the user's `Calendars.Read` delta feed) and
+   drafts a **session plan**: the task, why it made the Top 3, a suggested first step
+   (task-initiation helper), the effort estimate, and a link back to the app.
+2. An app-owned **service mailbox** (e.g. `wizard@attention-wizard.app`) creates the
+   event in *its own* calendar with the user as the only attendee — an application
+   permission scoped to that single mailbox via Graph application access policy. The
+   user receives a normal Outlook meeting invitation with the session plan as the body.
+3. The user taps **Accept** — the block lands on their calendar like any meeting.
+   Decline and propose-new-time work natively; the connector reads the response from
+   the service mailbox event and feeds it back (declines teach the prioritiser, counter
+   proposals reschedule the block).
+4. Fallback for non-Graph users later: plain email with an `ICS METHOD:REQUEST`
+   attachment — the same accept flow works in any calendar client.
+
+Why invite-first is the default: the app needs **zero write scopes on the user's
+data** for its flagship feature, the accept tap is a moment of deliberate commitment
+(which the ADHD literature suggests beats silent auto-scheduling for follow-through),
+and RSVP state gives free telemetry on whether proposed blocks are realistic.
 
 Notes:
 - `Chat.Read` for all-chats access can require admin consent in many tenants — the

@@ -16,6 +16,9 @@ Three principles drive every feature:
    ADHD makes expensive.
 3. **Kind accountability.** Nudges are encouraging and shame-free. Missing a task never
    produces guilt-inducing copy; it produces a re-plan.
+4. **Phone-first.** Nudges, check-ins, and the Top 3 board are consumed on a phone
+   between meetings. Every daily-loop screen is designed for a small touch screen first
+   and scaled up to desktop, not the other way round.
 
 ## Core features
 
@@ -80,10 +83,17 @@ The centrepiece daily exercise: pick exactly **three** things for today and trac
   personal calibration data).
 - The app finds free slots in the Outlook calendar and proposes focus blocks sized to the
   estimate (+ a profile-tuned buffer, defaulting generous — planning fallacy is real).
-- One tap writes the blocks to the calendar via Microsoft Graph, marked as busy, with the
-  task linked in the event body.
+- **Invite-first booking:** instead of writing to your calendar, the app sends you a
+  normal meeting invite containing a **session plan** in the body (the task, the why, a
+  suggested warm-up step, and the estimate). You just hit Accept in Outlook — one tap,
+  and the block is on your calendar like any other meeting. Decline or
+  propose-new-time works natively too, and the app treats that as feedback.
+  - Trust bonus: the app never needs write access to your calendar — read-only scope for
+    free-slot search, invites do the rest.
+  - Direct calendar write remains an optional power-user mode for people who'd rather
+    skip the accept step.
 - If a day gets blown up (meetings land on top of blocks), the app notices and proposes a
-  re-plan instead of letting the plan silently rot.
+  re-plan — a fresh invite — instead of letting the plan silently rot.
 
 ### 5. Recommendations engine
 

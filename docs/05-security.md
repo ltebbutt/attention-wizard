@@ -46,7 +46,15 @@ the target user is being asked for an unusual amount of trust.
   framing; LLM outputs are schema-validated (JSON schema) and can only produce
   classifications/extractions — the LLM never triggers actions (calendar writes, DMs)
   directly. Every side effect requires either a user tap or a rules-layer check.
-- Per-user rate/budget limits on LLM calls to bound cost and abuse.
+- **Token governance as a security control** (full design in `02-architecture.md`):
+  layered budgets (per-request → per-user daily → per-feature → global circuit-breaker)
+  enforced solely in the LLM Gateway, with runaway-usage anomaly detection and lockout.
+  A prompt-injection payload that tries to make the pipeline loop or exfiltrate via
+  giant completions hits the same walls as a cost bug — budgets are the blast-radius
+  limiter for both.
+- Usage telemetry is deliberately content-free: token counts, cost, latency, and result
+  status only — prompt/completion text is never logged, so the telemetry pipeline can't
+  become a shadow copy of user traffic.
 
 ## Application security baseline
 

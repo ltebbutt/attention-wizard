@@ -46,7 +46,26 @@ Top3Entry                   -- max 3 per DailyPlan (enforced by constraint)
   checkins jsonb            -- [{at, response, sentiment}]
 
 FocusBlock
-  id, top3_entry_id, start_at, end_at, calendar_event_id, status (held|blown|replanned)
+  id, top3_entry_id, start_at, end_at
+  booking_mode (invite|direct_write)
+  invite_event_id           -- event id in the service mailbox (invite mode)
+  session_plan jsonb        -- {task, why, first_step, estimate_min} as sent in the invite
+  rsvp (pending|accepted|declined|counter_proposed)
+  status (proposed|held|blown|replanned)
+
+LlmUsage                    -- one row per gateway call; content-free (counts + metadata only)
+  id, user_id, use_case (triage|estimation|ranking|onboarding|nudge_copy)
+  prompt_version, provider, model
+  input_tokens, output_tokens, cached_tokens
+  cost_usd numeric          -- from versioned price table at call time
+  latency_ms, result (ok|truncated|schema_invalid|refused|budget_denied)
+  budget_snapshot jsonb     -- which limits were checked and how close they were
+  created_at
+  -- partitioned by month; aggregates roll into LlmUsageDaily for dashboards
+
+LlmBudget                   -- effective limits, resolved per call by the gateway
+  scope (request|user_daily|feature_hourly|global_daily)
+  use_case, plan_tier, max_tokens, max_cost_usd, updated_at
 
 NudgeLog                    -- one table = one place to enforce "max nudges/day"
   id, user_id, channel, kind, sent_at, engaged (tapped|dismissed|ignored)
@@ -66,3 +85,6 @@ EstimationCalibration       -- rolling personal estimate-vs-actual factor
   (GDPR Arts. 15/17). Profile dimensions are health-adjacent → treated as special
   category data (see `05-security.md`).
 - Embeddings are derived data: deleted whenever their `ActionableItem` is deleted.
+- `LlmUsage`: raw rows 90 days (then only daily aggregates); never contains prompt or
+  completion text, so it survives a content-deletion request as billing metadata only —
+  but is still deleted with the account.
