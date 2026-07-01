@@ -1,0 +1,14 @@
+.shell-header {
+  display: flex;
+  align-items: center;
+  gap: var(--aw-s3);
+  padding: var(--aw-s4);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.wordmark {
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+}

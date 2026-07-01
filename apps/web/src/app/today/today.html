@@ -1,0 +1,106 @@
+<section class="today">
+  <aw-wizard-message [state]="wizardState()" (click)="clearNote()">
+    {{ wizardLine() }}
+  </aw-wizard-message>
+
+  <!-- The three slots (TOP3-30/32) -->
+  <div class="slots">
+    @for (entry of entries(); track entry.id) {
+      <article
+        class="aw-card slot"
+        [class.slot-active]="entry.status === 'in_progress'"
+        [class.slot-done]="entry.status === 'done'"
+        [class.slot-rolled]="entry.status === 'rolled_over'"
+      >
+        <span class="pos">{{ entry.position }}</span>
+        <div class="slot-body">
+          <span class="slot-title" [class.struck]="entry.status === 'done'">{{ taskTitle(entry) }}</span>
+          @if (entry.estimateMin) {
+            <span class="aw-small">~{{ entry.estimateMin }} min</span>
+          }
+        </div>
+        @if (plan()?.status === 'confirmed' && entry.status === 'pending') {
+          <button class="aw-btn aw-btn-secondary" (click)="start(entry)">Start</button>
+        } @else if (entry.status === 'in_progress') {
+          <button class="aw-btn aw-btn-primary" (click)="done(entry)">Done</button>
+        } @else if (entry.status === 'done') {
+          <span class="check" aria-label="done">✓</span>
+        } @else if (plan()?.status === 'proposed') {
+          <button class="aw-btn aw-btn-ghost" (click)="unpick(entry)" aria-label="remove">✕</button>
+        }
+      </article>
+    }
+    @for (i of [entries().length, entries().length + 1, entries().length + 2]; track i) {
+      @if (i < 3 && plan()?.status !== 'wrapped') {
+        <button class="slot slot-empty" (click)="picking.set(true)">
+          <span class="pos pos-empty">{{ i + 1 }}</span>
+          <span class="aw-small">tap to pick</span>
+        </button>
+      }
+    }
+  </div>
+
+  <!-- Primary action follows the loop state (DS-30) -->
+  @if (plan()?.status === 'proposed' && entries().length > 0 && !picking()) {
+    <button class="aw-btn aw-btn-primary main-action" (click)="confirm()">Lock in my 3</button>
+  } @else if (plan()?.status === 'proposed' && entries().length > 0 && picking()) {
+    <button class="aw-btn aw-btn-primary main-action" (click)="confirm()">Lock in my {{ entries().length }}</button>
+  } @else if (allDone() && plan()?.status !== 'wrapped') {
+    <button class="aw-btn aw-btn-primary main-action" (click)="wrapUp()">Wrap up the day</button>
+  } @else if (plan()?.status === 'confirmed' && !allDone()) {
+    <button class="aw-btn aw-btn-ghost main-action" (click)="wrapUp()">Call it a day</button>
+  }
+
+  <!-- Picking + backlog ("Later" pile, collapsed by default — TOP3-33) -->
+  @if (picking() || backlogOpen()) {
+    <section class="pile">
+      <header class="pile-header">
+        <h2 class="aw-lead">The pile</h2>
+        <button class="aw-btn aw-btn-ghost" (click)="picking.set(false); backlogOpen.set(false)">close</button>
+      </header>
+
+      <form class="add-row" (submit)="$event.preventDefault(); addTask()">
+        <input
+          class="aw-input"
+          name="title"
+          [ngModel]="newTitle()"
+          (ngModelChange)="newTitle.set($event)"
+          placeholder="Add a thing…"
+          autocomplete="off"
+        />
+        <button class="aw-btn aw-btn-secondary" type="submit" [disabled]="!newTitle().trim()">Add</button>
+      </form>
+
+      @if (backlog().length === 0) {
+        <p class="aw-small">Nothing in the pile yet. Add the first thing on your mind.</p>
+      }
+
+      <ul class="pile-list">
+        @for (task of backlog(); track task.id) {
+          <li class="aw-card pile-item" [class.rolled]="task.rolledOverCount > 0">
+            <div class="pile-item-body">
+              <span>{{ task.title }}</span>
+              <span class="aw-small">
+                @if (task.rolledOverCount > 0) {
+                  from yesterday ·
+                }
+                @if (task.estimateMin) {
+                  ~{{ task.estimateMin }} min
+                } @else {
+                  <button class="link-btn" (click)="estimate(task)">size it up</button>
+                }
+              </span>
+            </div>
+            @if (entries().length < 3 && plan()?.status !== 'wrapped') {
+              <button class="aw-btn aw-btn-secondary" (click)="pick(task)">Pick</button>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  } @else if (plan()?.status !== 'wrapped') {
+    <button class="aw-btn aw-btn-ghost later-toggle" (click)="backlogOpen.set(true)">
+      the pile ({{ backlog().length }})
+    </button>
+  }
+</section>

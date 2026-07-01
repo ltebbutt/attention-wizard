@@ -1,0 +1,155 @@
+/* Mobile-first (360px baseline, TOP3-34); desktop is scale-up only. */
+.today {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s5);
+  padding: var(--aw-s4);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s3);
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: var(--aw-s4);
+  padding: var(--aw-s4);
+  border-radius: var(--aw-r-lg);
+  transition: border-color 0.2s ease-out, background-color 0.2s ease-out;
+}
+
+/* DS-03: the active item is the screen's single solid-emerald element */
+.slot-active {
+  border-color: var(--aw-emerald);
+  background: var(--aw-emerald-soft);
+}
+
+.slot-done {
+  opacity: 0.7;
+}
+
+.slot-rolled {
+  border-color: var(--aw-amber);
+}
+
+.slot-empty {
+  justify-content: flex-start;
+  background: transparent;
+  border: 1.5px dashed var(--aw-line);
+  border-radius: var(--aw-r-lg);
+  padding: var(--aw-s4);
+  min-height: 64px;
+  color: var(--aw-ink-mute);
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--aw-s4);
+}
+
+.slot-empty:hover {
+  border-color: var(--aw-emerald);
+}
+
+/* DS-22: calm, large position numbers */
+.pos {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--aw-emerald);
+  min-width: 28px;
+  text-align: center;
+}
+
+.pos-empty {
+  color: var(--aw-ink-mute);
+}
+
+.slot-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s1);
+  min-width: 0;
+}
+
+.slot-title.struck {
+  text-decoration: line-through;
+  color: var(--aw-ink-mute);
+}
+
+.check {
+  color: var(--aw-emerald);
+  font-size: 24px;
+  min-width: 44px;
+  text-align: center;
+}
+
+.main-action {
+  width: 100%;
+}
+
+.later-toggle {
+  align-self: center;
+}
+
+.pile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s4);
+}
+
+.pile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.add-row {
+  display: flex;
+  gap: var(--aw-s2);
+}
+
+.pile-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s2);
+}
+
+.pile-item {
+  display: flex;
+  align-items: center;
+  gap: var(--aw-s3);
+  padding: var(--aw-s3) var(--aw-s4);
+}
+
+/* TOP3-31: rolled-over items get a soft tint, surfaced first by the API */
+.pile-item.rolled {
+  background: var(--aw-emerald-soft);
+}
+
+.pile-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s1);
+  min-width: 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--aw-emerald);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 24px;
+}

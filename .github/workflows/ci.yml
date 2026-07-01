@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Design tokens check (spec 001 AC-1)
+        run: npm run lint:tokens
+
+      - name: Build API and web
+        run: npm run build
+
+      - name: API unit tests (specs 003/004)
+        run: npm run test:api
+
+      - name: API e2e tests
+        run: npm run test:api:e2e
+
+      - name: Web unit tests (spec 002)
+        run: npm run test:web
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
