@@ -26,7 +26,12 @@ export class DemoApi extends Api {
   }
 
   private save(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    } catch {
+      /* sandboxed contexts (e.g. rendered single-file demo) have no storage;
+         the demo still works for the session, it just won't survive a reload */
+    }
   }
 
   private today(): string {

@@ -12,3 +12,10 @@
   font-size: 18px;
   letter-spacing: 0.01em;
 }
+
+.demo-chip {
+  margin-left: auto;
+  border: 1px solid var(--aw-line);
+  border-radius: var(--aw-r-pill);
+  padding: var(--aw-s1) var(--aw-s3);
+}

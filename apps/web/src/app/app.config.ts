@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideHttpClient, withInterceptors, HttpInterceptorFn } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withDisabledInitialNavigation } from '@angular/router';
 
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
@@ -19,7 +19,11 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    // Demo builds render Today directly (see App) and must not touch the History
+    // API: it is unavailable on file:// and in sandboxed iframes.
+    ...(environment.demo
+      ? [provideRouter(routes, withDisabledInitialNavigation())]
+      : [provideRouter(routes)]),
     provideHttpClient(withInterceptors([timezoneInterceptor])),
     // GitHub Pages demo build: the loop runs client-side against localStorage.
     ...(environment.demo ? [{ provide: Api, useClass: DemoApi }] : []),

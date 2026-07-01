@@ -1,8 +1,15 @@
 <header class="shell-header">
   <aw-wizard-avatar size="md" state="idle" />
   <span class="wordmark">Attention Wizard</span>
+  @if (demo) {
+    <span class="demo-chip aw-small">demo</span>
+  }
 </header>
 
 <main>
-  <router-outlet />
+  @if (demo) {
+    <aw-today />
+  } @else {
+    <router-outlet />
+  }
 </main>
