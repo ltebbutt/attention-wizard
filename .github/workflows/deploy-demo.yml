@@ -1,5 +1,8 @@
 name: Deploy demo (GitHub Pages)
 
+# Publishes the compiled demo to the gh-pages branch. Branch-based Pages needs no
+# Pages API permissions (the default token may not create a Pages site, which is
+# why the actions/deploy-pages flow failed here).
 on:
   push:
     branches:
@@ -8,9 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -19,9 +20,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,19 +33,14 @@ jobs:
       - name: Build demo (client-side store, no API needed)
         run: npm run build --workspace apps/web -- --configuration demo
 
-      - name: SPA fallback for Pages
-        run: cp apps/web/dist/web/browser/index.html apps/web/dist/web/browser/404.html
+      - name: SPA fallback + no Jekyll
+        run: |
+          cp apps/web/dist/web/browser/index.html apps/web/dist/web/browser/404.html
+          touch apps/web/dist/web/browser/.nojekyll
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: apps/web/dist/web/browser
-
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: apps/web/dist/web/browser
+          force_orphan: true
