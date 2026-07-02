@@ -74,6 +74,24 @@ describe('PlansService (spec 003)', () => {
     expect(londonPlan.id).not.toBe(aucklandPlan.id);
   });
 
+  it('spec 006 AC-1: undo returns a done entry to pending and the task to in_top3', () => {
+    const task = makeTask('oops not done yet');
+    const plan = plans.addEntry(USER, TZ, task.id);
+    const entry = plan.entries[0];
+    plans.setEntryStatus(USER, TZ, entry.id, 'done', 'about_right');
+    expect(tasks.get(USER, task.id).status).toBe('done');
+
+    plans.setEntryStatus(USER, TZ, entry.id, 'pending');
+    expect(entry.status).toBe('pending');
+    expect(entry.doneAt).toBeUndefined();
+    expect(entry.actualFeedback).toBeUndefined();
+    expect(tasks.get(USER, task.id).status).toBe('in_top3');
+
+    const wrapped = plans.wrapUp(USER, TZ);
+    expect(wrapped.entries[0].status).toBe('rolled_over');
+    expect(tasks.get(USER, task.id).rolledOverCount).toBe(1);
+  });
+
   it('records swaps after confirmation without judging (TOP3-05)', () => {
     const kept = makeTask('kept');
     const swappedOut = makeTask('swapped out');

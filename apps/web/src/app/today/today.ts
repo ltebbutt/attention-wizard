@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api, DailyPlan, Task, Top3Entry } from '../core/api';
-import { WIZARD_COPY } from '../wizard/copy';
+import { CONNECTIONS, WIZARD_COPY } from '../wizard/copy';
 import { WizardState } from '../wizard/wizard-avatar';
 import { WizardMessage } from '../wizard/wizard-message';
 
@@ -22,6 +22,12 @@ export class Today implements OnInit, OnDestroy {
 
   /** MO-40: true for the ~1.2s star-burst after the 3rd completion. */
   readonly burst = signal(false);
+
+  /** CONN-01 / INV-01 */
+  readonly copy = WIZARD_COPY;
+  readonly connections = CONNECTIONS;
+  readonly connectionsOpen = signal(false);
+  readonly invitePreviewDismissed = signal(false);
 
   readonly plan = signal<DailyPlan | null>(null);
   readonly backlog = signal<Task[]>([]);
@@ -46,7 +52,7 @@ export class Today implements OnInit, OnDestroy {
   readonly wizardLine = computed(() => {
     if (this.wizardNote()) return this.wizardNote()!;
     const plan = this.plan();
-    if (!plan) return WIZARD_COPY.greeting_morning;
+    if (!plan) return this.timeGreeting();
     if (plan.status === 'wrapped') return WIZARD_COPY.greeting_wrapped;
     if (this.allDone()) return WIZARD_COPY.greeting_all_done;
     if (plan.status === 'confirmed') {
@@ -54,8 +60,35 @@ export class Today implements OnInit, OnDestroy {
         ? WIZARD_COPY.greeting_in_progress
         : WIZARD_COPY.greeting_confirmed;
     }
-    return this.picking() ? WIZARD_COPY.greeting_planning : WIZARD_COPY.greeting_morning;
+    return this.picking() ? WIZARD_COPY.greeting_planning : this.timeGreeting();
   });
+
+  /** GREET-01: the wizard respects the clock. */
+  private timeGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return WIZARD_COPY.greeting_morning;
+    if (hour < 18) return WIZARD_COPY.greeting_afternoon;
+    return WIZARD_COPY.greeting_evening;
+  }
+
+  /** INV-01: first estimated entry gets the invite preview after lock-in. */
+  readonly inviteCandidate = computed(() => {
+    if (this.invitePreviewDismissed()) return null;
+    if (this.plan()?.status !== 'confirmed' || this.allDone()) return null;
+    return this.entries().find((e) => e.estimateMin && e.status === 'pending') ?? null;
+  });
+
+  /** INV-02 */
+  acceptInvitePreview(): void {
+    this.invitePreviewDismissed.set(true);
+    this.wizardNote.set(WIZARD_COPY.invite_ack);
+  }
+
+  /** UNDO-01: tap the check, it's pending again. */
+  async undo(entry: Top3Entry): Promise<void> {
+    this.plan.set(await this.api.setEntryStatus(entry.id, 'pending'));
+    this.wizardNote.set(WIZARD_COPY.undo_note);
+  }
 
   async ngOnInit(): Promise<void> {
     await this.refresh();

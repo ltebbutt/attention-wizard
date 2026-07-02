@@ -104,6 +104,12 @@ export class PlansService {
       entry.actualFeedback = actualFeedback;
       this.tasks.update(userId, entry.taskId, { status: 'done' });
     }
+    // UNDO-01: a done entry can come back to pending until the plan is wrapped
+    if (status === 'pending' && entry.status === 'done') {
+      entry.doneAt = undefined;
+      entry.actualFeedback = undefined;
+      this.tasks.update(userId, entry.taskId, { status: 'in_top3' });
+    }
     entry.status = status;
     return plan;
   }

@@ -179,6 +179,11 @@ export class DemoApi extends Api {
       const task = this.state.tasks.find((t) => t.id === entry.taskId);
       if (task) task.status = 'done';
     }
+    // UNDO-01
+    if (status === 'pending' && entry.status === 'done') {
+      const task = this.state.tasks.find((t) => t.id === entry.taskId);
+      if (task) task.status = 'in_top3';
+    }
     entry.status = status;
     this.save();
     return this.clone(plan);

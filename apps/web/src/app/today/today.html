@@ -34,6 +34,8 @@
           <button class="aw-btn aw-btn-secondary" (click)="start(entry)">Start</button>
         } @else if (entry.status === 'in_progress') {
           <button class="aw-btn aw-btn-primary" (click)="done(entry)">Done</button>
+        } @else if (entry.status === 'done' && plan()?.status !== 'wrapped') {
+          <button class="check check-btn" (click)="undo(entry)" aria-label="done — tap to undo" title="undo">✓</button>
         } @else if (entry.status === 'done') {
           <span class="check" aria-label="done">✓</span>
         } @else if (plan()?.status === 'proposed') {
@@ -51,6 +53,23 @@
     }
   </div>
 
+  <!-- INV-01: invite preview — where focus-block invites will land -->
+  @if (inviteCandidate(); as inv) {
+    <aside class="invite aw-card">
+      <div class="invite-rail"></div>
+      <div class="invite-body">
+        <span class="aw-small invite-chip">calendar invite · preview</span>
+        <strong>Focus: {{ taskTitle(inv) }}</strong>
+        <span class="aw-small">~{{ inv.estimateMin }} min block · session plan inside</span>
+        <span class="aw-small">When Outlook is connected, I’ll send this as a real invite — you just tap Accept.</span>
+      </div>
+      <div class="invite-actions">
+        <button class="aw-btn aw-btn-secondary" (click)="acceptInvitePreview()">Accept</button>
+        <button class="aw-btn aw-btn-ghost" (click)="invitePreviewDismissed.set(true)">Not now</button>
+      </div>
+    </aside>
+  }
+
   <!-- Primary action follows the loop state (DS-30) -->
   @if (plan()?.status === 'proposed' && entries().length > 0 && !picking()) {
     <button class="aw-btn aw-btn-primary main-action" (click)="confirm()">Lock in my 3</button>
@@ -61,11 +80,38 @@
   }
 
   @if (!picking() && !backlogOpen() && plan()?.status !== 'wrapped') {
-    <button class="aw-btn aw-btn-ghost later-toggle" (click)="backlogOpen.set(true)">
-      the pile ({{ backlog().length }})
-    </button>
+    <div class="toggles">
+      <button class="aw-btn aw-btn-ghost" (click)="backlogOpen.set(true)">
+        the pile ({{ backlog().length }})
+      </button>
+      <button class="aw-btn aw-btn-ghost" (click)="connectionsOpen.set(true)">connections</button>
+    </div>
   }
 </section>
+
+<!-- CONN-01: connections preview sheet -->
+@if (connectionsOpen()) {
+  <div class="scrim" (click)="connectionsOpen.set(false)" aria-hidden="true"></div>
+  <section class="pile" role="dialog" aria-label="Connections">
+    <header class="pile-header">
+      <h2 class="aw-lead">Connections</h2>
+      <button class="aw-btn aw-btn-ghost" (click)="connectionsOpen.set(false)">close</button>
+    </header>
+    <p class="aw-small">{{ copy.connections_intro }}</p>
+    <ul class="pile-list">
+      @for (conn of connections; track conn.name) {
+        <li class="aw-card pile-item">
+          <span class="conn-glyph">{{ conn.initial }}</span>
+          <div class="pile-item-body">
+            <span>{{ conn.name }}</span>
+            <span class="aw-small">{{ conn.blurb }}</span>
+          </div>
+          <span class="aw-small soon-chip">coming soon</span>
+        </li>
+      }
+    </ul>
+  </section>
+}
 
 <!-- MO-30: the pile as a bottom sheet -->
 @if (picking() || backlogOpen()) {

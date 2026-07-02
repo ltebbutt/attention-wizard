@@ -22,6 +22,7 @@ the requirements they implement; a spec's acceptance criteria become its tests.
 | 003 | [Top 3 daily loop](003-top3-loop.md) | implemented — Phase 1 scope (AC-4 browser e2e pending) |
 | 004 | [LLM gateway & token governance](004-llm-gateway.md) | implemented (AC-5 dep-cruise check pending) |
 | 005 | [Motion & polish](005-motion.md) | implemented |
+| 006 | [Undo, connections & invite previews, wizard v2](006-demo-surfaces.md) | implemented |
 
 Planning docs in [`../docs/`](../docs/) hold the product vision and architecture these
 specs derive from.
