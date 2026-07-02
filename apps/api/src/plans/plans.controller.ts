@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { CurrentUser } from '../common/user-context';
 import type { UserContext } from '../common/user-context';
 import type { ActualFeedback, EntryStatus } from '../domain/models';
@@ -12,6 +12,22 @@ export class PlansController {
   @Get('plans/today')
   getToday(@CurrentUser() user: UserContext) {
     return this.plans.getToday(user.id, user.timezone);
+  }
+
+  @Get('plans/:date')
+  getByDate(@CurrentUser() user: UserContext, @Param('date') date: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new BadRequestException('date must be YYYY-MM-DD');
+    return this.plans.getByDate(user.id, date);
+  }
+
+  @Post('plans/today/unlock')
+  unlock(@CurrentUser() user: UserContext) {
+    return this.plans.unlock(user.id, user.timezone);
+  }
+
+  @Post('plans/today/reopen')
+  reopen(@CurrentUser() user: UserContext) {
+    return this.plans.reopen(user.id, user.timezone);
   }
 
   @Post('plans/today/entries')

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ActualFeedback, Api, DailyPlan, EntryStatus, EstimateResponse, Task, Top3Entry } from './api';
+import { ActualFeedback, Api, DailyPlan, EntryStatus, EstimateResponse, Task, Top3Entry, WrapUpOutcome } from './api';
 
 interface DemoState {
   tasks: Task[];
@@ -144,8 +144,62 @@ export class DemoApi extends Api {
     return this.clone(plan);
   }
 
-  override async wrapUp(): Promise<DailyPlan> {
+  override async planByDate(date: string): Promise<DailyPlan | null> {
+    this.rolloverStalePlans();
+    return this.clone(this.state.plans.find((p) => p.planDate === date) ?? null);
+  }
+
+  /** ST-01 */
+  override async unlockPlan(): Promise<DailyPlan> {
     const plan = this.plan();
+    if (plan.status === 'confirmed') plan.status = 'proposed';
+    this.save();
+    return this.clone(plan);
+  }
+
+  /** ST-02 */
+  override async reopenPlan(): Promise<DailyPlan> {
+    const plan = this.plan();
+    if (plan.status !== 'wrapped') return this.clone(plan);
+    for (const entry of plan.entries) {
+      if (entry.status === 'rolled_over') {
+        entry.status = 'pending';
+        const task = this.state.tasks.find((t) => t.id === entry.taskId);
+        if (task) {
+          task.status = 'in_top3';
+          task.rolledOverCount = Math.max(0, task.rolledOverCount - 1);
+        }
+      }
+    }
+    plan.status = 'confirmed';
+    this.save();
+    return this.clone(plan);
+  }
+
+  /** ST-04: demo-only full reset. */
+  reset(): void {
+    this.state = { tasks: [], plans: [] };
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* no storage in sandboxed contexts */
+    }
+  }
+
+  override async wrapUp(outcomes: WrapUpOutcome[] = []): Promise<DailyPlan> {
+    const plan = this.plan();
+    for (const outcome of outcomes) {
+      const entry = plan.entries.find((e) => e.id === outcome.entryId);
+      if (!entry) continue;
+      if (outcome.status === 'done' && entry.status !== 'done') {
+        entry.status = 'done';
+        const task = this.state.tasks.find((t) => t.id === entry.taskId);
+        if (task) task.status = 'done';
+        entry.actualFeedback = outcome.actualFeedback;
+      } else if (entry.status === 'done' && outcome.actualFeedback) {
+        entry.actualFeedback = outcome.actualFeedback;
+      }
+    }
     for (const entry of plan.entries) {
       if (entry.status !== 'done') {
         entry.status = 'rolled_over';

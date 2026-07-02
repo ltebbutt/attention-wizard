@@ -9,6 +9,130 @@
   margin: 0 auto;
 }
 
+/* NAV-01: week strip */
+.week {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--aw-s1);
+  padding: 0 var(--aw-s4);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.day-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-height: 56px;
+  padding: var(--aw-s1);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--aw-r-md);
+  color: var(--aw-ink-mute);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--aw-t-base) var(--aw-ease), color var(--aw-t-base) var(--aw-ease);
+}
+
+.day-chip:hover {
+  border-color: var(--aw-line);
+}
+
+.day-selected {
+  border-color: var(--aw-emerald);
+  color: var(--aw-ink);
+}
+
+.day-today .day-num {
+  color: var(--aw-emerald);
+}
+
+.day-num {
+  font-weight: 600;
+}
+
+/* NAV-03: calm outcome dots */
+.day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--aw-r-pill);
+  background: transparent;
+}
+
+.dot-all {
+  background: var(--aw-emerald);
+}
+
+.dot-some {
+  background: var(--aw-amber);
+}
+
+.dot-none {
+  background: var(--aw-line);
+}
+
+/* PERS-01 */
+.name-ask {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s3);
+  padding: var(--aw-s4);
+  border-radius: var(--aw-r-lg);
+  animation: aw-rise var(--aw-t-base) var(--aw-ease) backwards;
+}
+
+.name-row {
+  display: flex;
+  gap: var(--aw-s2);
+}
+
+/* WRAP-01 */
+.wrap-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s2);
+  padding: var(--aw-s3) var(--aw-s4);
+}
+
+.wrap-title {
+  font-weight: 600;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--aw-s2);
+}
+
+.chip {
+  min-height: 36px;
+  padding: var(--aw-s1) var(--aw-s3);
+  background: none;
+  border: 1px solid var(--aw-line);
+  border-radius: var(--aw-r-pill);
+  color: var(--aw-ink-mute);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color var(--aw-t-fast) var(--aw-ease), background-color var(--aw-t-fast) var(--aw-ease), color var(--aw-t-fast) var(--aw-ease);
+}
+
+.chip-on {
+  border-color: var(--aw-emerald);
+  background: var(--aw-emerald-soft);
+  color: var(--aw-ink);
+}
+
+.sheet-footer {
+  display: flex;
+  gap: var(--aw-s3);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .wizard-row {
   position: relative;
 }

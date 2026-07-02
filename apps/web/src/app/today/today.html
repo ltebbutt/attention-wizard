@@ -1,115 +1,155 @@
-<section class="today">
-  <div class="wizard-row">
-    <aw-wizard-message [state]="wizardState()" (click)="clearNote()">
-      {{ wizardLine() }}
-    </aw-wizard-message>
-    <!-- MO-40: the one exuberant moment — plays once when the 3rd task lands -->
-    @if (burst()) {
-      <div class="burst" aria-hidden="true">
-        <span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span>
-      </div>
-    }
-  </div>
+<!-- NAV-01: week strip -->
+<nav class="week" aria-label="This week">
+  @for (day of weekDays(); track day.date) {
+    <button
+      class="day-chip"
+      [class.day-today]="day.isToday"
+      [class.day-selected]="(selectedDate() === day.date) || (day.isToday && !selectedDate())"
+      (click)="selectDay(day)"
+    >
+      <span class="aw-small">{{ day.weekday }}</span>
+      <span class="day-num">{{ day.dayNum }}</span>
+      <span class="day-dot" [class.dot-all]="day.dot === 'all'" [class.dot-some]="day.dot === 'some'" [class.dot-none]="day.dot === 'none'"></span>
+    </button>
+  }
+</nav>
 
-  <!-- The three slots (TOP3-30/32) -->
-  <div class="slots">
-    @for (entry of entries(); track entry.id) {
-      <article
-        class="aw-card slot"
-        [class.slot-active]="entry.status === 'in_progress'"
-        [class.slot-done]="entry.status === 'done'"
-        [class.slot-rolled]="entry.status === 'rolled_over'"
-      >
-        <span class="pos">{{ entry.position }}</span>
-        <div class="slot-body">
-          <span class="slot-title" [class.struck]="entry.status === 'done'"><span class="txt">{{ taskTitle(entry) }}</span></span>
-          @if (entry.status === 'in_progress') {
-            <span class="aw-small timer">{{ elapsedMin(entry) }} min in</span>
-          } @else if (entry.estimateMin) {
-            <span class="aw-small">~{{ entry.estimateMin }} min</span>
-          }
-        </div>
-        @if (plan()?.status === 'confirmed' && entry.status === 'pending') {
-          <button class="aw-btn aw-btn-secondary" (click)="start(entry)">Start</button>
-        } @else if (entry.status === 'in_progress') {
-          <button class="aw-btn aw-btn-primary" (click)="done(entry)">Done</button>
-        } @else if (entry.status === 'done' && plan()?.status !== 'wrapped') {
-          <button class="check check-btn" (click)="undo(entry)" aria-label="done — tap to undo" title="undo">✓</button>
-        } @else if (entry.status === 'done') {
-          <span class="check" aria-label="done">✓</span>
-        } @else if (plan()?.status === 'proposed') {
-          <button class="aw-btn aw-btn-ghost" (click)="unpick(entry)" aria-label="remove">✕</button>
+@if (viewedPast(); as past) {
+  <!-- NAV-01/02: read-only past day -->
+  <section class="today">
+    <h2 class="aw-lead">{{ formatDay(past.date) }}</h2>
+    @if (past.plan && past.plan.entries.length > 0) {
+      <div class="slots">
+        @for (entry of past.plan.entries; track entry.id) {
+          <article class="aw-card slot" [class.slot-done]="entry.status === 'done'" [class.slot-rolled]="entry.status === 'rolled_over'">
+            <span class="pos">{{ entry.position }}</span>
+            <div class="slot-body">
+              <span class="slot-title" [class.struck]="entry.status === 'done'"><span class="txt">{{ taskTitle(entry) }}</span></span>
+              @if (entry.status === 'rolled_over') {
+                <span class="aw-small">→ moved forward</span>
+              } @else if (entry.actualFeedback) {
+                <span class="aw-small">estimate felt {{ entry.actualFeedback.replace('_', ' ') }}</span>
+              }
+            </div>
+            @if (entry.status === 'done') {
+              <span class="check">✓</span>
+            }
+          </article>
         }
-      </article>
+      </div>
+    } @else {
+      <p class="aw-small">{{ copy.past_day_empty }}</p>
     }
-    @for (i of [entries().length, entries().length + 1, entries().length + 2]; track i) {
-      @if (i < 3 && plan()?.status !== 'wrapped') {
-        <button class="slot slot-empty" (click)="picking.set(true)">
-          <span class="pos pos-empty">{{ i + 1 }}</span>
-          <span class="aw-small">tap to pick</span>
-        </button>
+    <button class="aw-btn aw-btn-secondary main-action" (click)="selectedDate.set(null)">Back to today</button>
+  </section>
+} @else {
+  <section class="today">
+    <div class="wizard-row">
+      <aw-wizard-message [state]="wizardState()" (click)="clearNote()">
+        {{ wizardLine() }}
+      </aw-wizard-message>
+      @if (burst()) {
+        <div class="burst" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
       }
-    }
-  </div>
-
-  <!-- INV-01: invite preview — where focus-block invites will land -->
-  @if (inviteCandidate(); as inv) {
-    <aside class="invite aw-card">
-      <div class="invite-rail"></div>
-      <div class="invite-body">
-        <span class="aw-small invite-chip">calendar invite · preview</span>
-        <strong>Focus: {{ taskTitle(inv) }}</strong>
-        <span class="aw-small">~{{ inv.estimateMin }} min block · session plan inside</span>
-        <span class="aw-small">When Outlook is connected, I’ll send this as a real invite — you just tap Accept.</span>
-      </div>
-      <div class="invite-actions">
-        <button class="aw-btn aw-btn-secondary" (click)="acceptInvitePreview()">Accept</button>
-        <button class="aw-btn aw-btn-ghost" (click)="invitePreviewDismissed.set(true)">Not now</button>
-      </div>
-    </aside>
-  }
-
-  <!-- Primary action follows the loop state (DS-30) -->
-  @if (plan()?.status === 'proposed' && entries().length > 0 && !picking()) {
-    <button class="aw-btn aw-btn-primary main-action" (click)="confirm()">Lock in my 3</button>
-  } @else if (allDone() && plan()?.status !== 'wrapped') {
-    <button class="aw-btn aw-btn-primary main-action" (click)="wrapUp()">Wrap up the day</button>
-  } @else if (plan()?.status === 'confirmed' && !allDone()) {
-    <button class="aw-btn aw-btn-ghost main-action" (click)="wrapUp()">Call it a day</button>
-  }
-
-  @if (!picking() && !backlogOpen() && plan()?.status !== 'wrapped') {
-    <div class="toggles">
-      <button class="aw-btn aw-btn-ghost" (click)="backlogOpen.set(true)">
-        the pile ({{ backlog().length }})
-      </button>
-      <button class="aw-btn aw-btn-ghost" (click)="connectionsOpen.set(true)">connections</button>
     </div>
-  }
-</section>
 
-<!-- CONN-01: connections preview sheet -->
-@if (connectionsOpen()) {
-  <div class="scrim" (click)="connectionsOpen.set(false)" aria-hidden="true"></div>
-  <section class="pile" role="dialog" aria-label="Connections">
-    <header class="pile-header">
-      <h2 class="aw-lead">Connections</h2>
-      <button class="aw-btn aw-btn-ghost" (click)="connectionsOpen.set(false)">close</button>
-    </header>
-    <p class="aw-small">{{ copy.connections_intro }}</p>
-    <ul class="pile-list">
-      @for (conn of connections; track conn.name) {
-        <li class="aw-card pile-item">
-          <span class="conn-glyph">{{ conn.initial }}</span>
-          <div class="pile-item-body">
-            <span>{{ conn.name }}</span>
-            <span class="aw-small">{{ conn.blurb }}</span>
+    <!-- PERS-01: first-run name ask -->
+    @if (!profile.name() && !nameAskDismissed() && plan()?.status === 'proposed') {
+      <form class="aw-card name-ask" (submit)="$event.preventDefault(); saveName()">
+        <span>{{ copy.ask_name }}</span>
+        <div class="name-row">
+          <input class="aw-input" name="name" [ngModel]="nameDraft()" (ngModelChange)="nameDraft.set($event)" placeholder="Your name" autocomplete="given-name" maxlength="20" />
+          <button class="aw-btn aw-btn-secondary" type="submit" [disabled]="!nameDraft().trim()">Save</button>
+          <button class="aw-btn aw-btn-ghost" type="button" (click)="nameAskDismissed.set(true)">skip</button>
+        </div>
+      </form>
+    }
+
+    <!-- The three slots (TOP3-30/32) -->
+    <div class="slots">
+      @for (entry of entries(); track entry.id) {
+        <article
+          class="aw-card slot"
+          [class.slot-active]="entry.status === 'in_progress'"
+          [class.slot-done]="entry.status === 'done'"
+          [class.slot-rolled]="entry.status === 'rolled_over'"
+        >
+          <span class="pos">{{ entry.position }}</span>
+          <div class="slot-body">
+            <span class="slot-title" [class.struck]="entry.status === 'done'"><span class="txt">{{ taskTitle(entry) }}</span></span>
+            @if (entry.status === 'in_progress') {
+              <span class="aw-small timer">{{ elapsedMin(entry) }} min in</span>
+            } @else if (entry.status === 'rolled_over') {
+              <span class="aw-small">→ tomorrow’s pile</span>
+            } @else if (entry.estimateMin) {
+              <span class="aw-small">~{{ entry.estimateMin }} min</span>
+            }
           </div>
-          <span class="aw-small soon-chip">coming soon</span>
-        </li>
+          @if (plan()?.status === 'confirmed' && entry.status === 'pending') {
+            <button class="aw-btn aw-btn-secondary" (click)="start(entry)">Start</button>
+          } @else if (entry.status === 'in_progress') {
+            <button class="aw-btn aw-btn-primary" (click)="done(entry)">Done</button>
+          } @else if (entry.status === 'done' && plan()?.status !== 'wrapped') {
+            <button class="check check-btn" (click)="undo(entry)" aria-label="done — tap to undo" title="undo">✓</button>
+          } @else if (entry.status === 'done') {
+            <span class="check" aria-label="done">✓</span>
+          } @else if (plan()?.status === 'proposed') {
+            <button class="aw-btn aw-btn-ghost" (click)="unpick(entry)" aria-label="remove">✕</button>
+          }
+        </article>
       }
-    </ul>
+      @for (i of [entries().length, entries().length + 1, entries().length + 2]; track i) {
+        @if (i < 3 && plan()?.status === 'proposed') {
+          <button class="slot slot-empty" (click)="picking.set(true)">
+            <span class="pos pos-empty">{{ i + 1 }}</span>
+            <span class="aw-small">tap to pick</span>
+          </button>
+        }
+      }
+    </div>
+
+    <!-- INV-01: invite preview -->
+    @if (inviteCandidate(); as inv) {
+      <aside class="invite aw-card">
+        <div class="invite-rail"></div>
+        <div class="invite-body">
+          <span class="aw-small invite-chip">calendar invite · preview</span>
+          <strong>Focus: {{ taskTitle(inv) }}</strong>
+          <span class="aw-small">~{{ inv.estimateMin }} min block · session plan inside</span>
+          <span class="aw-small">When Outlook is connected, I’ll send this as a real invite — you just tap Accept.</span>
+        </div>
+        <div class="invite-actions">
+          <button class="aw-btn aw-btn-secondary" (click)="acceptInvitePreview()">Accept</button>
+          <button class="aw-btn aw-btn-ghost" (click)="invitePreviewDismissed.set(true)">Not now</button>
+        </div>
+      </aside>
+    }
+
+    <!-- Primary action follows the loop state (DS-30); every state has an exit (ST-03) -->
+    @if (plan()?.status === 'proposed' && entries().length > 0 && !picking()) {
+      <button class="aw-btn aw-btn-primary main-action" (click)="confirm()">Lock in my {{ entries().length }}</button>
+    } @else if (allDone() && plan()?.status !== 'wrapped') {
+      <button class="aw-btn aw-btn-primary main-action" (click)="startWrap()">Wrap up the day</button>
+    } @else if (plan()?.status === 'confirmed' && !allDone()) {
+      <div class="toggles">
+        <button class="aw-btn aw-btn-ghost" (click)="unlock()">edit my 3</button>
+        <button class="aw-btn aw-btn-ghost" (click)="startWrap()">call it a day</button>
+      </div>
+    } @else if (plan()?.status === 'wrapped') {
+      <button class="aw-btn aw-btn-ghost main-action" (click)="reopen()">Reopen today</button>
+    }
+
+    @if (!picking() && !backlogOpen() && plan()?.status !== 'wrapped') {
+      <div class="toggles">
+        <button class="aw-btn aw-btn-ghost" (click)="backlogOpen.set(true)">
+          the pile ({{ backlog().length }})
+        </button>
+        <button class="aw-btn aw-btn-ghost" (click)="connectionsOpen.set(true)">connections</button>
+      </div>
+    }
   </section>
 }
 
@@ -166,5 +206,79 @@
         </li>
       }
     </ul>
+  </section>
+}
+
+<!-- WRAP-01: the wrap-up ritual -->
+@if (wrapping()) {
+  <div class="scrim" (click)="wrapping.set(false)" aria-hidden="true"></div>
+  <section class="pile" role="dialog" aria-label="Wrap up the day">
+    <header class="pile-header">
+      <h2 class="aw-lead">Wrap up</h2>
+      <button class="aw-btn aw-btn-ghost" (click)="wrapping.set(false)">close</button>
+    </header>
+    <p class="aw-small">{{ copy.wrap_review_intro }}</p>
+    <ul class="pile-list">
+      @for (entry of entries(); track entry.id) {
+        <li class="aw-card wrap-item">
+          <span class="wrap-title">{{ taskTitle(entry) }}</span>
+          @if (entry.status === 'done') {
+            <span class="aw-small">{{ copy.wrap_question_feedback }}</span>
+            <div class="chip-row">
+              @for (opt of feedbackOptions; track opt.value) {
+                <button
+                  class="chip"
+                  [class.chip-on]="wrapChoices().get(entry.id)?.feedback === opt.value"
+                  (click)="chooseFeedback(entry.id, opt.value)"
+                >{{ opt.label }}</button>
+              }
+            </div>
+          } @else {
+            <span class="aw-small">{{ copy.wrap_question_unfinished }}</span>
+            <div class="chip-row">
+              <button class="chip" [class.chip-on]="wrapChoices().get(entry.id)?.status === 'done'" (click)="chooseOutcome(entry.id, 'done')">done</button>
+              <button class="chip" [class.chip-on]="wrapChoices().get(entry.id)?.status !== 'done'" (click)="chooseOutcome(entry.id, 'rolled_over')">tomorrow</button>
+            </div>
+          }
+        </li>
+      }
+      @if (entries().length === 0) {
+        <p class="aw-small">Nothing was picked today — that’s allowed.</p>
+      }
+    </ul>
+    <button class="aw-btn aw-btn-primary main-action" (click)="finishWrap()">Wrap the day</button>
+  </section>
+}
+
+<!-- CONN-01: connections preview sheet -->
+@if (connectionsOpen()) {
+  <div class="scrim" (click)="connectionsOpen.set(false)" aria-hidden="true"></div>
+  <section class="pile" role="dialog" aria-label="Connections">
+    <header class="pile-header">
+      <h2 class="aw-lead">Connections</h2>
+      <button class="aw-btn aw-btn-ghost" (click)="connectionsOpen.set(false)">close</button>
+    </header>
+    <p class="aw-small">{{ copy.connections_intro }}</p>
+    <ul class="pile-list">
+      @for (conn of connections; track conn.name) {
+        <li class="aw-card pile-item">
+          <span class="conn-glyph">{{ conn.initial }}</span>
+          <div class="pile-item-body">
+            <span>{{ conn.name }}</span>
+            <span class="aw-small">{{ conn.blurb }}</span>
+          </div>
+          <span class="aw-small soon-chip">coming soon</span>
+        </li>
+      }
+    </ul>
+    <div class="sheet-footer">
+      @if (profile.name()) {
+        <span class="aw-small">Signed in as {{ profile.name() }} · </span>
+        <button class="link-btn" (click)="profile.setName(''); nameAskDismissed.set(false); connectionsOpen.set(false)">change name</button>
+      }
+      @if (canReset) {
+        <button class="link-btn" (click)="resetDemo()">reset demo data</button>
+      }
+    </div>
   </section>
 }

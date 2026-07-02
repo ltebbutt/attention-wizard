@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - claude/adhd-assistant-app-plan-6asao1
   pull_request:
 
 jobs:

@@ -22,6 +22,7 @@ export interface Top3Entry {
   status: EntryStatus;
   estimateMin?: number;
   startedAt?: string;
+  actualFeedback?: ActualFeedback;
 }
 
 export interface DailyPlan {
@@ -29,6 +30,12 @@ export interface DailyPlan {
   planDate: string;
   status: 'proposed' | 'confirmed' | 'wrapped';
   entries: Top3Entry[];
+}
+
+export interface WrapUpOutcome {
+  entryId: string;
+  status: 'done' | 'rolled_over';
+  actualFeedback?: ActualFeedback;
 }
 
 export interface EstimateResponse {
@@ -59,6 +66,18 @@ export class Api {
     return firstValueFrom(this.http.get<DailyPlan>(`${this.base}/plans/today`));
   }
 
+  planByDate(date: string): Promise<DailyPlan | null> {
+    return firstValueFrom(this.http.get<DailyPlan | null>(`${this.base}/plans/${date}`));
+  }
+
+  unlockPlan(): Promise<DailyPlan> {
+    return firstValueFrom(this.http.post<DailyPlan>(`${this.base}/plans/today/unlock`, {}));
+  }
+
+  reopenPlan(): Promise<DailyPlan> {
+    return firstValueFrom(this.http.post<DailyPlan>(`${this.base}/plans/today/reopen`, {}));
+  }
+
   addEntry(taskId: string): Promise<DailyPlan> {
     return firstValueFrom(this.http.post<DailyPlan>(`${this.base}/plans/today/entries`, { taskId }));
   }
@@ -71,8 +90,8 @@ export class Api {
     return firstValueFrom(this.http.post<DailyPlan>(`${this.base}/plans/today/confirm`, {}));
   }
 
-  wrapUp(): Promise<DailyPlan> {
-    return firstValueFrom(this.http.post<DailyPlan>(`${this.base}/plans/today/wrapup`, {}));
+  wrapUp(outcomes: WrapUpOutcome[] = []): Promise<DailyPlan> {
+    return firstValueFrom(this.http.post<DailyPlan>(`${this.base}/plans/today/wrapup`, { outcomes }));
   }
 
   setEntryStatus(entryId: string, status: EntryStatus, actualFeedback?: ActualFeedback): Promise<DailyPlan> {

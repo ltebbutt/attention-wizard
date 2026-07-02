@@ -92,6 +92,47 @@ describe('PlansService (spec 003)', () => {
     expect(tasks.get(USER, task.id).rolledOverCount).toBe(1);
   });
 
+  it('spec 007 AC-1: unlock returns a confirmed plan to proposed (ST-01)', () => {
+    plans.addEntry(USER, TZ, makeTask('a').id);
+    plans.confirm(USER, TZ);
+    expect(plans.getToday(USER, TZ).status).toBe('confirmed');
+    expect(plans.unlock(USER, TZ).status).toBe('proposed');
+  });
+
+  it('spec 007 AC-1: reopen restores a wrapped day (ST-02)', () => {
+    const doneTask = makeTask('finished');
+    const leftTask = makeTask('left');
+    plans.addEntry(USER, TZ, doneTask.id);
+    plans.addEntry(USER, TZ, leftTask.id);
+    const plan = plans.getToday(USER, TZ);
+    const doneEntry = plan.entries.find((e) => e.taskId === doneTask.id)!;
+    plans.setEntryStatus(USER, TZ, doneEntry.id, 'done', 'about_right');
+    plans.wrapUp(USER, TZ);
+    expect(tasks.get(USER, leftTask.id).rolledOverCount).toBe(1);
+
+    const reopened = plans.reopen(USER, TZ);
+    expect(reopened.status).toBe('confirmed');
+    expect(reopened.entries.find((e) => e.taskId === leftTask.id)!.status).toBe('pending');
+    expect(reopened.entries.find((e) => e.taskId === doneTask.id)!.status).toBe('done');
+    expect(tasks.get(USER, leftTask.id).status).toBe('in_top3');
+    expect(tasks.get(USER, leftTask.id).rolledOverCount).toBe(0);
+  });
+
+  it('spec 007 AC-1: wrap-up outcomes apply feedback to already-done entries (WRAP-03)', () => {
+    const task = makeTask('done early');
+    const plan = plans.addEntry(USER, TZ, task.id);
+    const entry = plan.entries[0];
+    plans.setEntryStatus(USER, TZ, entry.id, 'done');
+    const wrapped = plans.wrapUp(USER, TZ, [
+      { entryId: entry.id, status: 'done', actualFeedback: 'took_longer' },
+    ]);
+    expect(wrapped.entries[0].actualFeedback).toBe('took_longer');
+  });
+
+  it('spec 007: getByDate never creates a plan (NAV-02)', () => {
+    expect(plans.getByDate(USER, '2020-01-01')).toBeNull();
+  });
+
   it('records swaps after confirmation without judging (TOP3-05)', () => {
     const kept = makeTask('kept');
     const swappedOut = makeTask('swapped out');

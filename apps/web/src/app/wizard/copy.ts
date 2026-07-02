@@ -1,14 +1,25 @@
 /** WIZ-14: the wizard's copy registry. Every user-facing wizard line lives here so
  *  tone rules (WIZ-11) are reviewable in one place. No shame vocabulary. */
+const withName = (base: string, name?: string) => (name ? `${base}, ${name}.` : `${base}.`);
+
 export const WIZARD_COPY = {
-  greeting_morning: 'Morning. What are your three for today?',
-  greeting_afternoon: 'Afternoon. What are your three for today?',
-  greeting_evening: 'Evening. Still time to name your three.',
+  greeting_morning: (name?: string) => `${withName('Morning', name)} What are your three for today?`,
+  greeting_afternoon: (name?: string) => `${withName('Afternoon', name)} What are your three for today?`,
+  greeting_evening: (name?: string) => `${withName('Evening', name)} Still time to name your three.`,
+  ask_name: 'Before we begin — what should I call you?',
+  name_saved: (name: string) => `${name} it is. Let’s keep today small.`,
   greeting_planning: 'Pick up to three. Everything else can wait in the pile.',
   greeting_confirmed: 'Three things, locked in. I’m here when you start.',
   greeting_in_progress: 'One thing at a time — you’re on it.',
   greeting_all_done: 'All three done. That’s a full day!',
   greeting_wrapped: 'Today is wrapped. Rest easy — tomorrow starts fresh.',
+  wrap_review_intro: 'Quick look back before we close the day.',
+  wrap_question_unfinished: 'Done or tomorrow?',
+  wrap_question_feedback: 'How was the estimate?',
+  summary_all_done: (name?: string) => `Three for three${name ? `, ${name}` : ''}. See you tomorrow!`,
+  summary_partial: (done: number) => `${done} done today. The rest waits in tomorrow’s pile — that’s how this works.`,
+  summary_none: 'Today is closed. Tomorrow starts fresh.',
+  past_day_empty: 'No plan that day.',
   empty_backlog: 'Nothing in the pile yet. Add the first thing on your mind.',
   rollover_note: 'This one moves to tomorrow’s pile.',
   undo_note: 'Back to pending — no harm done.',

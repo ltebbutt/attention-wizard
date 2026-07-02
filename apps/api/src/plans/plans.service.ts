@@ -69,6 +69,36 @@ export class PlansService {
     return plan;
   }
 
+  /** NAV-02: read-only lookup; never creates (creation is a today-only behaviour). */
+  getByDate(userId: string, date: string): DailyPlan | null {
+    return this.plans.get(`${userId}:${date}`) ?? null;
+  }
+
+  /** ST-01: a confirmed plan can be unlocked for editing until it is wrapped. */
+  unlock(userId: string, timezone: string, now?: Date): DailyPlan {
+    const plan = this.getToday(userId, timezone, now);
+    if (plan.status === 'wrapped') throw new ConflictException('Reopen the day first');
+    plan.status = 'proposed';
+    return plan;
+  }
+
+  /** ST-02: reopening un-wraps the day; rolled-over entries come back. */
+  reopen(userId: string, timezone: string, now?: Date): DailyPlan {
+    const plan = this.getToday(userId, timezone, now);
+    if (plan.status !== 'wrapped') return plan;
+    for (const entry of plan.entries) {
+      if (entry.status === 'rolled_over') {
+        entry.status = 'pending';
+        const task = this.tasks.get(userId, entry.taskId);
+        task.status = 'in_top3';
+        task.rolledOverCount = Math.max(0, task.rolledOverCount - 1);
+      }
+    }
+    plan.status = 'confirmed';
+    plan.wrappedAt = undefined;
+    return plan;
+  }
+
   /** TOP3-05: locking in is an explicit act. */
   confirm(userId: string, timezone: string, now?: Date): DailyPlan {
     const plan = this.getToday(userId, timezone, now);
@@ -126,6 +156,8 @@ export class PlansService {
         entry.doneAt = new Date().toISOString();
         entry.actualFeedback = outcome.actualFeedback;
         this.tasks.update(userId, entry.taskId, { status: 'done' });
+      } else if (entry.status === 'done' && outcome.actualFeedback) {
+        entry.actualFeedback = outcome.actualFeedback; // WRAP-03
       }
     }
     for (const entry of plan.entries) {
