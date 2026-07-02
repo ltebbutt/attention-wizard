@@ -173,6 +173,7 @@ export class DemoApi extends Api {
       for (const other of plan.entries) {
         if (other.id !== entryId && other.status === 'in_progress') other.status = 'pending';
       }
+      entry.startedAt = entry.startedAt ?? new Date().toISOString();
     }
     if (status === 'done') {
       const task = this.state.tasks.find((t) => t.id === entry.taskId);

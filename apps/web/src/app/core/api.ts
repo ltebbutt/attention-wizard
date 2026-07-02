@@ -21,6 +21,7 @@ export interface Top3Entry {
   position: 1 | 2 | 3;
   status: EntryStatus;
   estimateMin?: number;
+  startedAt?: string;
 }
 
 export interface DailyPlan {

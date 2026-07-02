@@ -30,6 +30,20 @@
   --aw-s5: 24px;
   --aw-s6: 32px;
   --aw-s7: 48px;
+
+  /* MO-01 motion */
+  --aw-t-fast: 150ms;
+  --aw-t-base: 220ms;
+  --aw-t-slow: 400ms;
+  --aw-t-pulse: 3s;
+  --aw-t-idle: 4s;
+  --aw-stagger: 40ms;
+  --aw-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --aw-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* MO-30 bottom sheet */
+  --aw-scrim: rgba(4, 8, 7, 0.65);
+  --aw-sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -50,6 +64,7 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent; /* MO-10 */
 }
 
 h1,
@@ -78,7 +93,15 @@ h3 {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.18s ease-out, color 0.18s ease-out;
+  transition:
+    background-color var(--aw-t-fast) var(--aw-ease),
+    color var(--aw-t-fast) var(--aw-ease),
+    transform var(--aw-t-fast) var(--aw-ease);
+}
+
+/* MO-10: press feedback */
+.aw-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .aw-btn-primary {
@@ -86,6 +109,7 @@ h3 {
   color: var(--aw-ink-on-emerald);
 }
 
+.aw-btn-primary:hover,
 .aw-btn-primary:active {
   background: var(--aw-emerald-press);
 }
@@ -138,6 +162,30 @@ textarea.aw-input:focus-visible,
 .aw-btn:focus-visible {
   outline: 2px solid var(--aw-emerald);
   outline-offset: 2px;
+}
+
+/* MO-11: shared enter animation (transform/opacity only, MO-60) */
+@keyframes aw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* MO-12: spring pop for completion marks */
+@keyframes aw-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* DS-32 motion discipline */

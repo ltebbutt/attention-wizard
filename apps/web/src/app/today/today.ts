@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api, DailyPlan, Task, Top3Entry } from '../core/api';
 import { WIZARD_COPY } from '../wizard/copy';
@@ -13,8 +13,15 @@ import { WizardMessage } from '../wizard/wizard-message';
   templateUrl: './today.html',
   styleUrl: './today.scss',
 })
-export class Today implements OnInit {
+export class Today implements OnInit, OnDestroy {
   private readonly api = inject(Api);
+
+  /** MO-20: half-minute tick driving the count-up focus timer (DS-22). */
+  private readonly now = signal(Date.now());
+  private readonly ticker = setInterval(() => this.now.set(Date.now()), 30_000);
+
+  /** MO-40: true for the ~1.2s star-burst after the 3rd completion. */
+  readonly burst = signal(false);
 
   readonly plan = signal<DailyPlan | null>(null);
   readonly backlog = signal<Task[]>([]);
@@ -52,6 +59,21 @@ export class Today implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.refresh();
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.ticker);
+  }
+
+  /** Minutes since an entry was started; calm count-up, never seconds (MO-20). */
+  elapsedMin(entry: Top3Entry & { startedAt?: string }): number {
+    if (!entry.startedAt) return 0;
+    return Math.max(0, Math.floor((this.now() - new Date(entry.startedAt).getTime()) / 60_000));
+  }
+
+  closePile(): void {
+    this.picking.set(false);
+    this.backlogOpen.set(false);
   }
 
   taskTitle(entry: Top3Entry): string {
@@ -97,6 +119,10 @@ export class Today implements OnInit {
 
   async done(entry: Top3Entry): Promise<void> {
     this.plan.set(await this.api.setEntryStatus(entry.id, 'done', 'about_right'));
+    if (this.allDone()) {
+      this.burst.set(true);
+      setTimeout(() => this.burst.set(false), 1800);
+    }
   }
 
   async wrapUp(): Promise<void> {

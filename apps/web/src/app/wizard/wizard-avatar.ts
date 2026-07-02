@@ -20,8 +20,8 @@ export type WizardSize = 'sm' | 'md' | 'lg';
     >
       <!-- face -->
       <circle cx="32" cy="40" r="18" fill="var(--aw-surface-2)" stroke="var(--aw-line)" stroke-width="2" />
-      <!-- hat: rounded cone, tilts slightly when celebrating/concerned -->
-      <g class="hat" [attr.transform]="hatTransform()">
+      <!-- hat: rounded cone; tilt transitions smoothly per state (MO-50) -->
+      <g class="hat">
         <path
           d="M32 4 C33.5 4 34.5 5 35 6.5 L44 26 C45 28.5 43.5 30 41 30 L23 30 C20.5 30 19 28.5 20 26 L29 6.5 C29.5 5 30.5 4 32 4 Z"
           fill="var(--aw-emerald)"
@@ -70,19 +70,45 @@ export type WizardSize = 'sm' | 'md' | 'lg';
       line-height: 0;
     }
 
-    /* WIZ-04: subtle idle shimmer only; removed entirely under reduced motion */
+    /* MO-50: hat tilt transitions instead of snapping */
+    .hat {
+      transform-origin: 32px 30px;
+      transition: transform var(--aw-t-base) var(--aw-ease);
+    }
+
+    .wiz-celebrating .hat {
+      transform: rotate(-8deg);
+    }
+
+    .wiz-concerned .hat {
+      transform: rotate(4deg);
+    }
+
+    /* WIZ-04: subtle idle life only; removed entirely under reduced motion */
     @media (prefers-reduced-motion: no-preference) {
       .wiz-idle .star {
-        animation: aw-shimmer 4s ease-in-out infinite;
+        animation: aw-shimmer var(--aw-t-idle) ease-in-out infinite;
+      }
+      .wiz-idle .eyes {
+        transform-origin: 32px 40px;
+        animation: aw-blink var(--aw-t-idle) infinite;
       }
       .wiz-thinking .thought {
-        animation: aw-bob 1.2s ease-in-out infinite;
+        animation: aw-bob calc(var(--aw-t-slow) * 3) ease-in-out infinite;
+      }
+      .wiz-celebrating .star {
+        animation: aw-shimmer calc(var(--aw-t-idle) / 2) ease-in-out infinite;
       }
     }
 
     @keyframes aw-shimmer {
       0%, 88%, 100% { opacity: 1; }
       94% { opacity: 0.35; }
+    }
+
+    @keyframes aw-blink {
+      0%, 91%, 97%, 100% { transform: scaleY(1); }
+      94% { transform: scaleY(0.12); }
     }
 
     @keyframes aw-bob {
@@ -97,10 +123,4 @@ export class WizardAvatar {
 
   /** WIZ-02 sizes */
   readonly px = computed(() => ({ sm: 32, md: 56, lg: 96 })[this.size()]);
-
-  readonly hatTransform = computed(() => {
-    if (this.state() === 'celebrating') return 'rotate(-8 32 30)';
-    if (this.state() === 'concerned') return 'rotate(4 32 30)';
-    return '';
-  });
 }

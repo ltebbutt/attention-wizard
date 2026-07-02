@@ -1,4 +1,5 @@
-/* Mobile-first (360px baseline, TOP3-34); desktop is scale-up only. */
+/* Mobile-first (360px baseline, TOP3-34); desktop is scale-up only.
+   Motion per spec 005: tokens only, transform/opacity only (MO-60). */
 .today {
   display: flex;
   flex-direction: column;
@@ -8,11 +9,63 @@
   margin: 0 auto;
 }
 
+.wizard-row {
+  position: relative;
+}
+
+/* MO-40: emerald star-burst from the avatar, plays once */
+.burst {
+  position: absolute;
+  top: var(--aw-s4);
+  left: var(--aw-s4);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.burst span {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--aw-r-pill);
+  background: var(--aw-emerald);
+  opacity: 0;
+  animation: aw-burst calc(var(--aw-t-slow) * 3) var(--aw-ease) forwards;
+}
+
+.burst span:nth-child(1) { --dx: 52px; --dy: -26px; }
+.burst span:nth-child(2) { --dx: -44px; --dy: -34px; animation-delay: calc(var(--aw-stagger) * 1); }
+.burst span:nth-child(3) { --dx: 64px; --dy: 18px; animation-delay: calc(var(--aw-stagger) * 2); }
+.burst span:nth-child(4) { --dx: -58px; --dy: 24px; animation-delay: calc(var(--aw-stagger) * 0.5); }
+.burst span:nth-child(5) { --dx: 24px; --dy: -52px; animation-delay: calc(var(--aw-stagger) * 2.5); }
+.burst span:nth-child(6) { --dx: -20px; --dy: -58px; animation-delay: calc(var(--aw-stagger) * 1.5); }
+.burst span:nth-child(7) { --dx: 40px; --dy: 44px; animation-delay: calc(var(--aw-stagger) * 3); }
+.burst span:nth-child(8) { --dx: -36px; --dy: 48px; animation-delay: calc(var(--aw-stagger) * 3.5); }
+
+@keyframes aw-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.3);
+  }
+}
+
 .slots {
   display: flex;
   flex-direction: column;
   gap: var(--aw-s3);
 }
+
+/* MO-11: staggered fade-rise on enter */
+.slots > * {
+  animation: aw-rise var(--aw-t-base) var(--aw-ease) backwards;
+}
+
+.slots > *:nth-child(2) { animation-delay: calc(var(--aw-stagger) * 1); }
+.slots > *:nth-child(3) { animation-delay: calc(var(--aw-stagger) * 2); }
 
 .slot {
   display: flex;
@@ -20,13 +73,26 @@
   gap: var(--aw-s4);
   padding: var(--aw-s4);
   border-radius: var(--aw-r-lg);
-  transition: border-color 0.2s ease-out, background-color 0.2s ease-out;
+  transition:
+    border-color var(--aw-t-base) var(--aw-ease),
+    background-color var(--aw-t-base) var(--aw-ease),
+    opacity var(--aw-t-base) var(--aw-ease);
 }
 
-/* DS-03: the active item is the screen's single solid-emerald element */
+/* DS-03 + MO-13: the active item is the single emerald anchor, breathing slowly */
 .slot-active {
   border-color: var(--aw-emerald);
-  background: var(--aw-emerald-soft);
+  animation: aw-breathe var(--aw-t-pulse) ease-in-out infinite;
+}
+
+@keyframes aw-breathe {
+  0%,
+  100% {
+    background-color: var(--aw-emerald-soft);
+  }
+  50% {
+    background-color: transparent;
+  }
 }
 
 .slot-done {
@@ -50,10 +116,18 @@
   display: flex;
   align-items: center;
   gap: var(--aw-s4);
+  transition:
+    border-color var(--aw-t-base) var(--aw-ease),
+    transform var(--aw-t-fast) var(--aw-ease);
 }
 
 .slot-empty:hover {
   border-color: var(--aw-emerald);
+  transform: translateY(-1px);
+}
+
+.slot-empty:active {
+  transform: scale(0.99);
 }
 
 /* DS-22: calm, large position numbers */
@@ -77,16 +151,47 @@
   min-width: 0;
 }
 
+/* MO-12: the strikethrough draws itself, per line even when the title wraps */
+.slot-title {
+  align-self: flex-start;
+  transition: color var(--aw-t-base) var(--aw-ease);
+}
+
 .slot-title.struck {
-  text-decoration: line-through;
   color: var(--aw-ink-mute);
 }
 
+.slot-title.struck .txt {
+  /* solid-colour "gradient" is just a line-drawing device, not decoration */
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 55%;
+  background-size: 100% 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  animation: aw-strike var(--aw-t-base) var(--aw-ease) both;
+}
+
+@keyframes aw-strike {
+  from {
+    background-size: 0% 2px;
+  }
+  to {
+    background-size: 100% 2px;
+  }
+}
+
+.timer {
+  color: var(--aw-emerald);
+}
+
+/* MO-12: check pops in with spring easing */
 .check {
   color: var(--aw-emerald);
   font-size: 24px;
   min-width: 44px;
   text-align: center;
+  animation: aw-pop var(--aw-t-base) var(--aw-ease-spring) both;
 }
 
 .main-action {
@@ -97,16 +202,70 @@
   align-self: center;
 }
 
+/* MO-30: bottom sheet + scrim */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: var(--aw-scrim);
+  animation: aw-fade var(--aw-t-base) var(--aw-ease);
+}
+
+@keyframes aw-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .pile {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11;
+  margin: 0 auto;
+  max-width: 560px;
+  max-height: 78dvh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--aw-s4);
+  background: var(--aw-surface);
+  border: 1px solid var(--aw-line);
+  border-bottom: none;
+  border-radius: var(--aw-r-lg) var(--aw-r-lg) 0 0;
+  box-shadow: var(--aw-sheet-shadow); /* the app's one shadow (DS-11) */
+  padding: var(--aw-s3) var(--aw-s4) calc(var(--aw-s4) + env(safe-area-inset-bottom));
+  animation: aw-sheet-up var(--aw-t-slow) var(--aw-ease);
+}
+
+/* grab handle */
+.pile::before {
+  content: '';
+  align-self: center;
+  width: 36px;
+  height: 4px;
+  border-radius: var(--aw-r-pill);
+  background: var(--aw-line);
+}
+
+@keyframes aw-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 .pile-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--aw-s3);
 }
 
 .add-row {
@@ -128,7 +287,12 @@
   align-items: center;
   gap: var(--aw-s3);
   padding: var(--aw-s3) var(--aw-s4);
+  animation: aw-rise var(--aw-t-base) var(--aw-ease) backwards;
 }
+
+.pile-item:nth-child(2) { animation-delay: calc(var(--aw-stagger) * 1); }
+.pile-item:nth-child(3) { animation-delay: calc(var(--aw-stagger) * 2); }
+.pile-item:nth-child(4) { animation-delay: calc(var(--aw-stagger) * 3); }
 
 /* TOP3-31: rolled-over items get a soft tint, surfaced first by the API */
 .pile-item.rolled {

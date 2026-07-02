@@ -27,6 +27,8 @@ import { WizardAvatar, WizardState } from './wizard-avatar';
       border-top-left-radius: var(--aw-r-sm);
       padding: var(--aw-s3) var(--aw-s4);
       max-width: 42ch;
+      animation: aw-rise var(--aw-t-base) var(--aw-ease) backwards;
+      animation-delay: calc(var(--aw-stagger) * 1);
     }
   `,
 })
