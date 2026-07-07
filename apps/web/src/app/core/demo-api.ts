@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { ActualFeedback, Api, DailyPlan, EntryStatus, EstimateResponse, Task, Top3Entry, WrapUpOutcome } from './api';
 import { LlmClient } from './llm-client';
+import { SHOWCASE, storageGet, storageRemove, storageSet } from './storage';
 
 interface DemoState {
   tasks: Task[];
@@ -10,7 +11,7 @@ interface DemoState {
 const STORAGE_KEY = 'aw-demo-v1';
 
 /** Demo mode for GitHub Pages: the spec 003 rules (3-cap, single focus, rollover)
- *  running entirely in the browser, persisted to localStorage. Mirrors
+ *  running entirely in the browser, persisted via the storage gate. Mirrors
  *  apps/api/src/plans/plans.service.ts — behaviour changes must land in both. */
 @Injectable()
 export class DemoApi extends Api {
@@ -19,21 +20,34 @@ export class DemoApi extends Api {
 
   private load(): DemoState {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = storageGet(STORAGE_KEY);
       if (raw) return JSON.parse(raw) as DemoState;
     } catch {
       /* fresh start */
+    }
+    // SHOW-03: showcase visitors land on a seeded pile, not an empty screen
+    if (SHOWCASE) {
+      const seed = (title: string, estimateMin?: number): Task => ({
+        id: crypto.randomUUID(),
+        title,
+        estimateMin,
+        status: 'backlog',
+        rolledOverCount: 0,
+      });
+      return {
+        tasks: [
+          seed('Reply to the design review thread', 20),
+          seed('Draft the sprint update', 45),
+          seed('Book a dentist appointment'),
+        ],
+        plans: [],
+      };
     }
     return { tasks: [], plans: [] };
   }
 
   private save(): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-    } catch {
-      /* sandboxed contexts (e.g. rendered single-file demo) have no storage;
-         the demo still works for the session, it just won't survive a reload */
-    }
+    storageSet(STORAGE_KEY, JSON.stringify(this.state));
   }
 
   private today(): string {
@@ -245,11 +259,7 @@ export class DemoApi extends Api {
   /** ST-04: demo-only full reset. */
   reset(): void {
     this.state = { tasks: [], plans: [] };
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* no storage in sandboxed contexts */
-    }
+    storageRemove(STORAGE_KEY);
   }
 
   override async wrapUp(outcomes: WrapUpOutcome[] = []): Promise<DailyPlan> {

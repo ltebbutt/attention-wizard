@@ -28,9 +28,28 @@ for (const file of walk(STYLE_DIR)) {
   });
 }
 
+// SHOW-02 (spec 010 AC-2): localStorage is only touched via core/storage.ts
+const TS_DIR = join(ROOT, 'apps/web/src/app');
+function* walkTs(dir) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) yield* walkTs(path);
+    else if (name.endsWith('.ts') && !name.endsWith('.spec.ts')) yield path;
+  }
+}
+for (const file of walkTs(TS_DIR)) {
+  if (file.endsWith('core/storage.ts')) continue;
+  const lines = readFileSync(file, 'utf8').split('\n');
+  lines.forEach((line, i) => {
+    if (/\blocalStorage\b/.test(line)) {
+      offenders.push(`${relative(ROOT, file)}:${i + 1}: direct localStorage use (SHOW-02)`);
+    }
+  });
+}
+
 if (offenders.length > 0) {
-  console.error('Raw colours found outside the tokens file (DS-01):');
+  console.error('Design/storage gate failures:');
   for (const line of offenders) console.error('  ' + line);
   process.exit(1);
 }
-console.log('DS-01 ok: no raw colours outside the tokens file.');
+console.log('DS-01 ok: no raw colours outside the tokens file; SHOW-02 ok: storage gated.');

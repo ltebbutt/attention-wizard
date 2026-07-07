@@ -25,7 +25,7 @@ export const appConfig: ApplicationConfig = {
       ? [provideRouter(routes, withDisabledInitialNavigation())]
       : [provideRouter(routes)]),
     provideHttpClient(withInterceptors([timezoneInterceptor])),
-    // GitHub Pages demo build: the loop runs client-side against localStorage.
+    // GitHub Pages demo build: the loop runs client-side against the local store.
     ...(environment.demo ? [{ provide: Api, useClass: DemoApi }] : []),
   ],
 };

@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { storageGet, storageRemove, storageSet } from './storage';
 
 const SETTINGS_KEY = 'aw-ai-v1';
 const USAGE_KEY = 'aw-ai-usage-v1';
@@ -47,7 +48,7 @@ export class LlmClient {
 
   private load(): AiSettings | null {
     try {
-      const raw = localStorage.getItem(SETTINGS_KEY);
+      const raw = storageGet(SETTINGS_KEY);
       return raw ? (JSON.parse(raw) as AiSettings) : null;
     } catch {
       return null;
@@ -61,39 +62,32 @@ export class LlmClient {
 
   save(settings: AiSettings): void {
     this.settings.set(settings);
-    try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    } catch {
-      /* sandboxed contexts: works for the session only */
-    }
+    storageSet(SETTINGS_KEY, JSON.stringify(settings));
   }
 
   /** AI-02: disconnect wipes the key. */
   clear(): void {
     this.settings.set(null);
-    try {
-      localStorage.removeItem(SETTINGS_KEY);
-    } catch {
-      /* ignore */
-    }
+    storageRemove(SETTINGS_KEY);
   }
 
-  /** AI-04: content-free daily counter; fail closed when unset or over cap. */
+  /** AI-04: content-free daily counter; fail closed when unset or over cap.
+   *  In showcase mode storage is inert, so the session counter backs it up. */
+  private sessionCalls = 0;
+
   callsToday(): number {
     try {
-      const raw = JSON.parse(localStorage.getItem(USAGE_KEY) ?? '{}') as { day?: string; count?: number };
-      return raw.day === new Date().toDateString() ? (raw.count ?? 0) : 0;
+      const raw = JSON.parse(storageGet(USAGE_KEY) ?? '{}') as { day?: string; count?: number };
+      const stored = raw.day === new Date().toDateString() ? (raw.count ?? 0) : 0;
+      return Math.max(stored, this.sessionCalls);
     } catch {
-      return 0;
+      return this.sessionCalls;
     }
   }
 
   private recordCall(): void {
-    try {
-      localStorage.setItem(USAGE_KEY, JSON.stringify({ day: new Date().toDateString(), count: this.callsToday() + 1 }));
-    } catch {
-      /* ignore */
-    }
+    this.sessionCalls += 1;
+    storageSet(USAGE_KEY, JSON.stringify({ day: new Date().toDateString(), count: this.callsToday() }));
   }
 
   /** Returns provider text, or a typed failure reason (AI-06). */

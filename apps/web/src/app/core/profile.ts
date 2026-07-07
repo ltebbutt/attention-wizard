@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { storageGet, storageSet } from './storage';
 
 const KEY = 'aw-profile-v1';
 
@@ -39,7 +40,7 @@ export class ProfileStore {
 
   private load(): ProfileState {
     try {
-      return JSON.parse(localStorage.getItem(KEY) ?? '{}') as ProfileState;
+      return JSON.parse(storageGet(KEY) ?? '{}') as ProfileState;
     } catch {
       return {};
     }
@@ -52,11 +53,7 @@ export class ProfileStore {
       recommendations: this.recommendations(),
       calibrationSteps: this.calibrationSteps(),
     };
-    try {
-      localStorage.setItem(KEY, JSON.stringify(this.state));
-    } catch {
-      /* no storage in sandboxed contexts */
-    }
+    storageSet(KEY, JSON.stringify(this.state));
   }
 
   setName(raw: string): void {

@@ -2,6 +2,10 @@
 
 Personal project made to support individuals with ADHD.
 
+**Live demo:** https://ltebbutt.github.io/attention-wizard/ (persistent, on-device)
+· **Shareable showcase:** https://ltebbutt.github.io/attention-wizard/?fresh
+(memory-free — seeded examples, nothing stored, resets on reload)
+
 Attention Wizard connects to your work tools (Outlook, Teams, Jira, Confluence, and
 more), triages the traffic with an LLM, and helps you commit to just **three things a
 day** — with kind nudges, effort estimates, and automatic calendar blocking.
