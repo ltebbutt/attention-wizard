@@ -198,6 +198,46 @@
       <button class="aw-btn aw-btn-secondary" type="submit" [disabled]="!newTitle().trim()">Add</button>
     </form>
 
+    <!-- CAP-01..03: brain dump -->
+    @if (canReset) {
+      @if (!dumpOpen()) {
+        <button class="aw-btn aw-btn-ghost" (click)="dumpOpen.set(true)">paste from Teams, mail, anywhere…</button>
+      } @else {
+        <div class="dump">
+          <textarea
+            class="aw-input"
+            name="dump"
+            rows="4"
+            [ngModel]="dumpText()"
+            (ngModelChange)="dumpText.set($event)"
+            placeholder="Paste a thread, an email, meeting notes — I’ll pull out the tasks."
+          ></textarea>
+          <div class="name-row">
+            <button class="aw-btn aw-btn-secondary" (click)="sortDump()" [disabled]="!dumpText().trim() || sorting()">
+              {{ sorting() ? 'Sorting…' : 'Sort this out' }}
+            </button>
+            <button class="aw-btn aw-btn-ghost" (click)="dumpOpen.set(false); proposals.set([])">hide</button>
+          </div>
+          @if (proposals().length > 0) {
+            <ul class="pile-list">
+              @for (item of proposals(); track item.title) {
+                <li class="aw-card pile-item">
+                  <div class="pile-item-body">
+                    <span>{{ item.title }}</span>
+                    @if (item.estimateMin) {
+                      <span class="aw-small">~{{ item.estimateMin }} min</span>
+                    }
+                  </div>
+                  <button class="aw-btn aw-btn-secondary" (click)="addProposal(item)">Add</button>
+                </li>
+              }
+            </ul>
+            <button class="aw-btn aw-btn-ghost" (click)="addAllProposals()">add all {{ proposals().length }}</button>
+          }
+        </div>
+      }
+    }
+
     @if (backlog().length === 0) {
       <p class="aw-small">Nothing in the pile yet. Add the first thing on your mind.</p>
     }
@@ -278,6 +318,20 @@
     </header>
     <p class="aw-small">{{ copy.connections_intro }}</p>
     <ul class="pile-list">
+      <!-- AI-01: your own model, linked from the phone -->
+      <li class="aw-card pile-item">
+        <span class="conn-glyph">✦</span>
+        <div class="pile-item-body">
+          <span>Your AI</span>
+          <span class="aw-small">Link a free LLM key (Groq, OpenRouter…) — estimates and the brain dump get properly smart. Key stays on your device.</span>
+        </div>
+        @if (llm.configured()) {
+          <span class="aw-small soon-chip linked-chip">linked</span>
+        }
+        <button class="aw-btn aw-btn-secondary" (click)="connectionsOpen.set(false); aiOpen.set(true)">
+          {{ llm.configured() ? 'Manage' : 'Link' }}
+        </button>
+      </li>
       @for (conn of connections; track conn.name) {
         <li class="aw-card pile-item">
           <span class="conn-glyph">{{ conn.initial }}</span>
@@ -289,7 +343,10 @@
         </li>
       }
     </ul>
-    <p class="aw-small">Closed-app nudges (push notifications) arrive with the real backend — honest roadmap, not a bug.</p>
+    <p class="aw-small">
+      Two tiers, honestly: paste/share capture and your own AI work now; automatic
+      Teams/Outlook/Jira ingestion and closed-app nudges arrive with the real backend.
+    </p>
     <div class="sheet-footer">
       <button class="link-btn" (click)="connectionsOpen.set(false); profileOpen.set(true)">about you</button>
       <button class="link-btn" (click)="connectionsOpen.set(false); interviewOpen.set(true)">tune the wizard</button>
@@ -330,6 +387,45 @@
       <p class="aw-small">We haven’t done the tune-up yet — two minutes, five questions, and I’ll fit how you work.</p>
       <button class="aw-btn aw-btn-primary" (click)="profileOpen.set(false); interviewOpen.set(true)">Start the tune-up</button>
     }
+  </section>
+}
+
+<!-- AI-01..04: Your AI sheet -->
+@if (aiOpen()) {
+  <div class="scrim" (click)="aiOpen.set(false)" aria-hidden="true"></div>
+  <section class="pile" role="dialog" aria-label="Your AI">
+    <header class="pile-header">
+      <h2 class="aw-lead">Your AI</h2>
+      <button class="aw-btn aw-btn-ghost" (click)="aiOpen.set(false)">close</button>
+    </header>
+    <p class="aw-small">
+      Your key is stored on this device only and calls go straight from your phone to
+      your provider — I never see either. Use a free-tier key.
+    </p>
+    <div class="chip-row">
+      @for (preset of aiPresets; track preset.name) {
+        <button class="chip" [class.chip-on]="aiBase() === preset.baseUrl && preset.baseUrl !== ''" (click)="applyPreset(preset)">
+          {{ preset.name }}
+        </button>
+      }
+    </div>
+    @for (preset of aiPresets; track preset.name) {
+      @if (aiBase() === preset.baseUrl && preset.baseUrl !== '') {
+        <p class="aw-small">{{ preset.hint }}</p>
+      }
+    }
+    <input class="aw-input" name="aiBase" [ngModel]="aiBase()" (ngModelChange)="aiBase.set($event)" placeholder="Base URL (…/openai/v1)" autocomplete="off" />
+    <input class="aw-input" name="aiKey" type="password" [ngModel]="aiKey()" (ngModelChange)="aiKey.set($event)" placeholder="API key" autocomplete="off" />
+    <input class="aw-input" name="aiModel" [ngModel]="aiModel()" (ngModelChange)="aiModel.set($event)" placeholder="Model" autocomplete="off" />
+    <div class="name-row">
+      <button class="aw-btn aw-btn-primary" (click)="testAi()" [disabled]="!aiBase().trim() || !aiKey().trim() || !aiModel().trim()">
+        Save & test
+      </button>
+      @if (llm.configured()) {
+        <button class="aw-btn aw-btn-ghost" (click)="disconnectAi()">disconnect</button>
+      }
+    </div>
+    <p class="aw-small">{{ llm.callsToday() }} of 50 calls used today (daily cap keeps free tiers free).</p>
   </section>
 }
 

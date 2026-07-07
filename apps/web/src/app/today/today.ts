@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit
 import { FormsModule } from '@angular/forms';
 import { ActualFeedback, Api, DailyPlan, Task, Top3Entry, WrapUpOutcome } from '../core/api';
 import { DemoApi } from '../core/demo-api';
+import { AI_PRESETS, LlmClient } from '../core/llm-client';
 import { ProfileStore } from '../core/profile';
 import { Interview } from '../interview/interview';
 import { CONNECTIONS, WIZARD_COPY } from '../wizard/copy';
@@ -58,6 +59,18 @@ export class Today implements OnInit, OnDestroy {
   readonly interviewOpen = signal(false);
   readonly profileOpen = signal(false);
   readonly interviewOfferDismissed = signal(false);
+
+  /** Spec 009: BYO AI + brain dump. */
+  readonly llm = inject(LlmClient);
+  readonly aiPresets = AI_PRESETS;
+  readonly aiOpen = signal(false);
+  readonly aiBase = signal('');
+  readonly aiKey = signal('');
+  readonly aiModel = signal('');
+  readonly dumpOpen = signal(false);
+  readonly dumpText = signal('');
+  readonly sorting = signal(false);
+  readonly proposals = signal<Array<{ title: string; estimateMin?: number }>>([]);
 
   /** NAV-01: null = today (interactive); a date = read-only past view. */
   readonly selectedDate = signal<string | null>(null);
@@ -191,6 +204,26 @@ export class Today implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     await this.refresh();
     await this.loadWeek();
+    const s = this.llm.settings();
+    if (s) {
+      this.aiBase.set(s.baseUrl);
+      this.aiKey.set(s.apiKey);
+      this.aiModel.set(s.model);
+    }
+    // CAP-04: ?add=<text> (share target / iOS Shortcut) prefills the brain dump
+    try {
+      const shared =
+        new URLSearchParams(location.search).get('add') ??
+        new URLSearchParams(location.hash.replace(/^#\??/, '')).get('add');
+      if (shared) {
+        this.dumpText.set(shared);
+        this.dumpOpen.set(true);
+        this.backlogOpen.set(true);
+        history.replaceState(null, '', location.pathname);
+      }
+    } catch {
+      /* sandboxed contexts: no history access */
+    }
   }
 
   ngOnDestroy(): void {
@@ -391,6 +424,70 @@ export class Today implements OnInit, OnDestroy {
       await this.refresh();
       await this.loadWeek();
     }
+  }
+
+  /** AI-01 */
+  applyPreset(preset: (typeof AI_PRESETS)[number]): void {
+    this.aiBase.set(preset.baseUrl);
+    this.aiModel.set(preset.model);
+  }
+
+  saveAi(): void {
+    this.llm.save({ baseUrl: this.aiBase().trim(), apiKey: this.aiKey().trim(), model: this.aiModel().trim() });
+    this.wizardNote.set(WIZARD_COPY.ai_saved);
+  }
+
+  /** AI-03 */
+  async testAi(): Promise<void> {
+    this.saveAi();
+    this.thinking.set(true);
+    try {
+      const result = await this.llm.complete('Reply with exactly one word: ready', 'ping', 10);
+      this.wizardNote.set(result.ok ? WIZARD_COPY.ai_linked : WIZARD_COPY.ai_failed(result.reason));
+    } finally {
+      this.thinking.set(false);
+    }
+  }
+
+  disconnectAi(): void {
+    this.llm.clear();
+    this.aiKey.set('');
+    this.wizardNote.set(WIZARD_COPY.ai_disconnected);
+  }
+
+  /** CAP-01..03 */
+  async sortDump(): Promise<void> {
+    const text = this.dumpText().trim();
+    if (!text || this.sorting()) return;
+    this.sorting.set(true);
+    this.thinking.set(true);
+    this.wizardNote.set(WIZARD_COPY.triage_thinking);
+    try {
+      const items =
+        this.api instanceof DemoApi
+          ? await this.api.triageDump(text)
+          : [];
+      this.proposals.set(items);
+      this.wizardNote.set(WIZARD_COPY.triage_result(items.length));
+    } finally {
+      this.sorting.set(false);
+      this.thinking.set(false);
+    }
+  }
+
+  async addProposal(item: { title: string; estimateMin?: number }): Promise<void> {
+    await this.api.createTask(item.title, item.estimateMin);
+    this.proposals.update((list) => list.filter((p) => p !== item));
+    await this.refresh();
+  }
+
+  async addAllProposals(): Promise<void> {
+    for (const item of this.proposals()) {
+      await this.api.createTask(item.title, item.estimateMin);
+    }
+    this.proposals.set([]);
+    this.dumpText.set('');
+    await this.refresh();
   }
 
   /** MO-20 */

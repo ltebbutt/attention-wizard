@@ -41,6 +41,16 @@ export const WIZARD_COPY = {
   budget_exhausted: 'I’ve hit today’s thinking budget. I’ll be sharper after midnight.',
   celebration: 'Three for three!',
   invite_ack: 'Once Outlook is connected, blocks like this land in your calendar — you just tap Accept.',
+  ai_saved: 'Saved. Your key stays on this device — I never see it.',
+  ai_linked: 'Linked! “Size it up” and the brain dump now use your model.',
+  ai_failed: (reason: string) =>
+    reason === 'budget_denied'
+      ? 'That’s today’s call budget spent — resets at midnight.'
+      : 'That link didn’t take — double-check the key, model and URL.',
+  ai_disconnected: 'Disconnected and wiped from this device.',
+  triage_thinking: 'Sorting through that…',
+  triage_result: (n: number) =>
+    n > 0 ? `I found ${n} thing${n === 1 ? '' : 's'} in there. Add the real ones.` : 'Nothing actionable in that — lucky you.',
   connections_intro: 'Here’s what I’ll watch for you. Each one feeds your pile — you stay at three.',
 } as const;
 

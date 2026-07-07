@@ -125,6 +125,21 @@
   color: var(--aw-ink);
 }
 
+.dump {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aw-s3);
+}
+
+.dump textarea {
+  resize: vertical;
+}
+
+.linked-chip {
+  border-color: var(--aw-emerald);
+  color: var(--aw-emerald);
+}
+
 .sheet-footer {
   display: flex;
   gap: var(--aw-s3);
