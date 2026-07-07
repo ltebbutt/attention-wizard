@@ -36,3 +36,11 @@ jobs:
         run: npm run test:web
         env:
           CHROME_BIN: /usr/bin/google-chrome
+
+      - name: Build demo for e2e
+        run: npm run build --workspace apps/web -- --configuration demo
+
+      - name: Browser e2e (spec 003 AC-4)
+        run: npm run e2e:demo
+        env:
+          CHROME_BIN: /usr/bin/google-chrome

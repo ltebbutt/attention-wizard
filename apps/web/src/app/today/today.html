@@ -56,6 +56,17 @@
       }
     </div>
 
+    <!-- INT-04: tune-up offer for users who already have a name -->
+    @if (profile.name() && !profile.dims() && !interviewOfferDismissed() && plan()?.status === 'proposed') {
+      <div class="aw-card name-ask">
+        <span>{{ copy.interview_offer }}</span>
+        <div class="name-row">
+          <button class="aw-btn aw-btn-secondary" (click)="interviewOpen.set(true)">Two minutes</button>
+          <button class="aw-btn aw-btn-ghost" (click)="interviewOfferDismissed.set(true)">later</button>
+        </div>
+      </div>
+    }
+
     <!-- PERS-01: first-run name ask -->
     @if (!profile.name() && !nameAskDismissed() && plan()?.status === 'proposed') {
       <form class="aw-card name-ask" (submit)="$event.preventDefault(); saveName()">
@@ -76,6 +87,8 @@
           [class.slot-active]="entry.status === 'in_progress'"
           [class.slot-done]="entry.status === 'done'"
           [class.slot-rolled]="entry.status === 'rolled_over'"
+          (touchstart)="onSlotTouchStart($event)"
+          (touchend)="onSlotTouchEnd($event, entry)"
         >
           <span class="pos">{{ entry.position }}</span>
           <div class="slot-body">
@@ -85,7 +98,12 @@
             } @else if (entry.status === 'rolled_over') {
               <span class="aw-small">→ tomorrow’s pile</span>
             } @else if (entry.estimateMin) {
-              <span class="aw-small">~{{ entry.estimateMin }} min</span>
+              <span class="aw-small">
+                ~{{ entry.estimateMin }} min
+                @if (paddedMin(entry); as padded) {
+                  · {{ padded }} at your pace
+                }
+              </span>
             }
           </div>
           @if (plan()?.status === 'confirmed' && entry.status === 'pending') {
@@ -118,7 +136,7 @@
         <div class="invite-body">
           <span class="aw-small invite-chip">calendar invite · preview</span>
           <strong>Focus: {{ taskTitle(inv) }}</strong>
-          <span class="aw-small">~{{ inv.estimateMin }} min block · session plan inside</span>
+          <span class="aw-small">~{{ paddedMin(inv) ?? inv.estimateMin }} min block · session plan inside</span>
           <span class="aw-small">When Outlook is connected, I’ll send this as a real invite — you just tap Accept.</span>
         </div>
         <div class="invite-actions">
@@ -271,9 +289,11 @@
         </li>
       }
     </ul>
+    <p class="aw-small">Closed-app nudges (push notifications) arrive with the real backend — honest roadmap, not a bug.</p>
     <div class="sheet-footer">
+      <button class="link-btn" (click)="connectionsOpen.set(false); profileOpen.set(true)">about you</button>
+      <button class="link-btn" (click)="connectionsOpen.set(false); interviewOpen.set(true)">tune the wizard</button>
       @if (profile.name()) {
-        <span class="aw-small">Signed in as {{ profile.name() }} · </span>
         <button class="link-btn" (click)="profile.setName(''); nameAskDismissed.set(false); connectionsOpen.set(false)">change name</button>
       }
       @if (canReset) {
@@ -281,4 +301,39 @@
       }
     </div>
   </section>
+}
+
+<!-- REC-02 / CAL-02: profile sheet -->
+@if (profileOpen()) {
+  <div class="scrim" (click)="profileOpen.set(false)" aria-hidden="true"></div>
+  <section class="pile" role="dialog" aria-label="About you">
+    <header class="pile-header">
+      <h2 class="aw-lead">About you</h2>
+      <button class="aw-btn aw-btn-ghost" (click)="profileOpen.set(false)">close</button>
+    </header>
+    @if (profile.dims(); as dims) {
+      <ul class="pile-list">
+        <li class="aw-card wrap-item">
+          <span class="wrap-title">Your rhythm</span>
+          <span class="aw-small">Peak focus: {{ dims.peak }} · hardest part: {{ dims.hardestPhase }} · cheer style: {{ dims.tone === 'cheer' ? 'confetti' : 'quiet nods' }}</span>
+          <span class="aw-small">{{ copy.calibration_insight(profile.effectiveBufferX()) }}</span>
+        </li>
+        @for (rec of profile.recommendations(); track rec.title) {
+          <li class="aw-card wrap-item">
+            <span class="wrap-title">{{ rec.title }}</span>
+            <span class="aw-small">{{ rec.why }}</span>
+          </li>
+        }
+      </ul>
+      <button class="aw-btn aw-btn-secondary" (click)="profileOpen.set(false); interviewOpen.set(true)">Retake the tune-up</button>
+    } @else {
+      <p class="aw-small">We haven’t done the tune-up yet — two minutes, five questions, and I’ll fit how you work.</p>
+      <button class="aw-btn aw-btn-primary" (click)="profileOpen.set(false); interviewOpen.set(true)">Start the tune-up</button>
+    }
+  </section>
+}
+
+<!-- INT-01..06 -->
+@if (interviewOpen()) {
+  <aw-interview (close)="interviewOpen.set(false)" />
 }

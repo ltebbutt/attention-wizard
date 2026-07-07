@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActualFeedback, Api, DailyPlan, Task, Top3Entry, WrapUpOutcome } from '../core/api';
 import { DemoApi } from '../core/demo-api';
 import { ProfileStore } from '../core/profile';
+import { Interview } from '../interview/interview';
 import { CONNECTIONS, WIZARD_COPY } from '../wizard/copy';
 import { WizardState } from '../wizard/wizard-avatar';
 import { WizardMessage } from '../wizard/wizard-message';
@@ -20,7 +21,7 @@ interface WeekDay {
 @Component({
   selector: 'aw-today',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, WizardMessage],
+  imports: [FormsModule, WizardMessage, Interview],
   templateUrl: './today.html',
   styleUrl: './today.scss',
 })
@@ -28,9 +29,14 @@ export class Today implements OnInit, OnDestroy {
   private readonly api = inject(Api);
   readonly profile = inject(ProfileStore);
 
-  /** MO-20: half-minute tick driving the count-up focus timer (DS-22). */
+  /** MO-20: half-minute tick driving the count-up focus timer (DS-22) and
+   *  the overrun check-ins (CHK-01). */
   private readonly now = signal(Date.now());
-  private readonly ticker = setInterval(() => this.now.set(Date.now()), 30_000);
+  private readonly ticker = setInterval(() => {
+    this.now.set(Date.now());
+    this.checkOverruns();
+  }, 30_000);
+  private readonly checkedIn = new Set<string>();
 
   readonly plan = signal<DailyPlan | null>(null);
   readonly backlog = signal<Task[]>([]);
@@ -47,6 +53,11 @@ export class Today implements OnInit, OnDestroy {
   /** PERS-01 */
   readonly nameDraft = signal('');
   readonly nameAskDismissed = signal(false);
+
+  /** INT-04 / REC-02 */
+  readonly interviewOpen = signal(false);
+  readonly profileOpen = signal(false);
+  readonly interviewOfferDismissed = signal(false);
 
   /** NAV-01: null = today (interactive); a date = read-only past view. */
   readonly selectedDate = signal<string | null>(null);
@@ -110,14 +121,65 @@ export class Today implements OnInit, OnDestroy {
     const name = this.profile.name() || undefined;
     if (!plan) return this.timeGreeting(name);
     if (plan.status === 'wrapped') return this.summaryLine();
-    if (this.allDone()) return WIZARD_COPY.greeting_all_done;
+    if (this.allDone()) return WIZARD_COPY.greeting_all_done(this.profile.dims()?.tone);
     if (plan.status === 'confirmed') {
       return this.entries().some((e) => e.status === 'in_progress')
         ? WIZARD_COPY.greeting_in_progress
         : WIZARD_COPY.greeting_confirmed;
     }
-    return this.picking() ? WIZARD_COPY.greeting_planning : this.timeGreeting(name);
+    if (this.picking()) {
+      // INT-12: nudge toward the heavy task during the user's peak window
+      return this.inPeakWindow()
+        ? `${WIZARD_COPY.greeting_planning} ${WIZARD_COPY.planning_peak_hint}`
+        : WIZARD_COPY.greeting_planning;
+    }
+    return this.timeGreeting(name);
   });
+
+  private inPeakWindow(): boolean {
+    const peak = this.profile.dims()?.peak;
+    if (!peak || peak === 'varies') return false;
+    const hour = new Date().getHours();
+    return (
+      (peak === 'morning' && hour < 12) ||
+      (peak === 'afternoon' && hour >= 12 && hour < 18) ||
+      (peak === 'evening' && hour >= 18)
+    );
+  }
+
+  /** INT-10: estimates padded to the user's pace. */
+  paddedMin(entry: Top3Entry): number | null {
+    if (!entry.estimateMin) return null;
+    const padded = this.profile.paddedMin(entry.estimateMin);
+    return padded !== entry.estimateMin ? padded : null;
+  }
+
+  /** CHK-01/02: once per entry, tone-aware, no shame. */
+  private checkOverruns(): void {
+    const plan = this.plan();
+    if (!plan || plan.status !== 'confirmed') return;
+    for (const entry of plan.entries) {
+      if (entry.status !== 'in_progress' || !entry.estimateMin || this.checkedIn.has(entry.id)) continue;
+      const elapsed = this.elapsedMin(entry);
+      if (elapsed > this.profile.paddedMin(entry.estimateMin)) {
+        this.checkedIn.add(entry.id);
+        this.wizardNote.set(WIZARD_COPY.checkin(this.taskTitle(entry), elapsed, this.profile.dims()?.tone));
+      }
+    }
+  }
+
+  /** GES-01: swipe right ≥ 64px completes an actionable entry. */
+  private touchStartX = 0;
+  onSlotTouchStart(event: TouchEvent): void {
+    this.touchStartX = event.changedTouches[0]?.clientX ?? 0;
+  }
+
+  async onSlotTouchEnd(event: TouchEvent, entry: Top3Entry): Promise<void> {
+    const dx = (event.changedTouches[0]?.clientX ?? 0) - this.touchStartX;
+    const actionable =
+      this.plan()?.status === 'confirmed' && (entry.status === 'pending' || entry.status === 'in_progress');
+    if (dx >= 64 && actionable) await this.done(entry);
+  }
 
   /** INV-01 */
   readonly inviteCandidate = computed(() => {
@@ -192,12 +254,13 @@ export class Today implements OnInit, OnDestroy {
     this.selectedDate.set(day.isToday ? null : day.date);
   }
 
-  /** PERS-01 */
+  /** PERS-01 → INT-04: the interview follows the name. */
   saveName(): void {
     const name = this.nameDraft().trim();
     if (!name) return;
     this.profile.setName(name);
     this.wizardNote.set(WIZARD_COPY.name_saved(this.profile.name()));
+    if (!this.profile.dims()) this.interviewOpen.set(true);
   }
 
   async addTask(): Promise<void> {
@@ -241,6 +304,7 @@ export class Today implements OnInit, OnDestroy {
 
   async done(entry: Top3Entry): Promise<void> {
     this.plan.set(await this.api.setEntryStatus(entry.id, 'done'));
+    navigator.vibrate?.(20); // GES-02: no-op where unsupported
     if (this.allDone()) {
       this.burst.set(true);
       setTimeout(() => this.burst.set(false), 1800);
@@ -288,6 +352,24 @@ export class Today implements OnInit, OnDestroy {
     this.plan.set(await this.api.wrapUp(outcomes));
     this.wrapping.set(false);
     await this.refresh();
+    this.recalibrate(); // CAL-01
+  }
+
+  /** CAL-01: deterministic recompute from the last week's feedback. */
+  private recalibrate(): void {
+    const feedback: ActualFeedback[] = [];
+    const collect = (plan: DailyPlan | null | undefined) => {
+      for (const e of plan?.entries ?? []) if (e.actualFeedback) feedback.push(e.actualFeedback);
+    };
+    collect(this.plan());
+    for (const plan of this.pastPlans().values()) collect(plan);
+    if (feedback.length < 3) return;
+    const longer = feedback.filter((f) => f === 'took_longer').length;
+    const quicker = feedback.filter((f) => f === 'was_quicker').length;
+    const target = longer > feedback.length / 2 ? 1 : quicker > feedback.length / 2 ? -1 : 0;
+    if (target !== this.profile.calibrationSteps()) {
+      this.profile.setCalibration(target);
+    }
   }
 
   /** INV-02 */

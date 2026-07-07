@@ -24,6 +24,7 @@ the requirements they implement; a spec's acceptance criteria become its tests.
 | 005 | [Motion & polish](005-motion.md) | implemented |
 | 006 | [Undo, connections & invite previews, wizard v2](006-demo-surfaces.md) | implemented |
 | 007 | [Wrap-up ritual, day navigator, personalisation, states, PWA](007-day-navigation-and-states.md) | implemented |
+| 008 | [Interview, recommendations, calibration, check-ins, gestures](008-interview-and-insights.md) | implemented |
 
 Planning docs in [`../docs/`](../docs/) hold the product vision and architecture these
 specs derive from.

@@ -15,7 +15,11 @@
     "test:api": "npm run test --workspace apps/api -- --ci",
     "test:api:e2e": "npm run test:e2e --workspace apps/api -- --ci",
     "test:web": "npm run test --workspace apps/web -- --watch=false",
-    "lint:tokens": "node tools/check-raw-colors.mjs"
+    "lint:tokens": "node tools/check-raw-colors.mjs && node tools/check-contrast.mjs",
+    "e2e:demo": "node tools/e2e-demo.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.49.0"
   },
   "engines": {
     "node": ">=20"

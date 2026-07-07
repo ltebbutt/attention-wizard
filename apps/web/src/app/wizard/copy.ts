@@ -11,7 +11,18 @@ export const WIZARD_COPY = {
   greeting_planning: 'Pick up to three. Everything else can wait in the pile.',
   greeting_confirmed: 'Three things, locked in. I’m here when you start.',
   greeting_in_progress: 'One thing at a time — you’re on it.',
-  greeting_all_done: 'All three done. That’s a full day!',
+  greeting_all_done: (tone?: 'cheer' | 'calm') =>
+    tone === 'calm' ? 'All three done. Well worked.' : 'All three done. That’s a full day!',
+  interview_offer: 'Fancy a two-minute tune-up so I fit how you work?',
+  planning_peak_hint: 'These are your good hours — maybe start with the heavy one.',
+  checkin: (title: string, min: number, tone?: 'cheer' | 'calm') =>
+    tone === 'calm'
+      ? `Still on “${title}”? ${min} minutes in — finish line or a break, both count.`
+      : `Still on “${title}”? ${min} minutes in — finish line or a break, both count!`,
+  calibration_insight: (x: number) =>
+    x > 1
+      ? `Your tasks tend to run a little long — I pad estimates ×${x}. That’s pace, not a flaw.`
+      : 'Your estimates land true — I don’t pad them.',
   greeting_wrapped: 'Today is wrapped. Rest easy — tomorrow starts fresh.',
   wrap_review_intro: 'Quick look back before we close the day.',
   wrap_question_unfinished: 'Done or tomorrow?',
