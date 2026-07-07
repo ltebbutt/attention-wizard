@@ -1,0 +1,20 @@
+{
+  "name": "Attention Wizard",
+  "short_name": "Wizard",
+  "description": "Three things a day, with a wizard on your side.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "share_target": {
+    "action": ".",
+    "method": "GET",
+    "params": { "text": "add", "title": "add", "url": "add" }
+  },
+  "background_color": "#0a0e0d",
+  "theme_color": "#0a0e0d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
